@@ -109,7 +109,8 @@ export function useContacts() {
 
   const pagination = reactive({ page: 1, limit: 20 });
 
-  async function fetchContacts() {
+  async function fetchContacts(append = false) {
+    if (!append) pagination.page = 1;
     loading.value = true;
     try {
       const res = await api.get('/contacts', {
@@ -123,8 +124,13 @@ export function useContacts() {
           zaloAccountId: filters.zaloAccountId || undefined,
         },
       });
-      contacts.value = res.data.contacts ?? res.data;
-      total.value = res.data.total ?? contacts.value.length;
+      const newItems = res.data.contacts ?? res.data;
+      if (append) {
+        contacts.value = [...contacts.value, ...newItems];
+      } else {
+        contacts.value = newItems;
+      }
+      total.value = res.data.total ?? (append ? total.value : contacts.value.length);
     } catch (err) {
       console.error('Failed to fetch contacts:', err);
     } finally {

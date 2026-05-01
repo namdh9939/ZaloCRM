@@ -152,6 +152,19 @@
         <v-icon size="48" class="mb-2 opacity-20">mdi-account-search</v-icon>
         <div>Không tìm thấy khách hàng</div>
       </div>
+
+      <!-- Load more -->
+      <div v-if="hasMore" class="d-flex justify-center mt-2 mb-6">
+        <v-btn
+          variant="text"
+          color="primary"
+          :loading="loadingMore"
+          prepend-icon="mdi-chevron-down"
+          @click="loadMore"
+        >
+          Xem thêm ({{ total - contacts.length }})
+        </v-btn>
+      </div>
     </div>
 
     <!-- FAB: add contact -->
@@ -189,13 +202,24 @@ import { useZaloAccounts } from '@/composables/use-zalo-accounts';
 import { formatDate } from '@/utils/date-format';
 import type { Contact } from '@/composables/use-contacts';
 
-const { contacts, loading, filters, fetchContacts } = useContacts();
+const { contacts, total, loading, filters, pagination, fetchContacts } = useContacts();
 const { duplicateTotal, fetchDuplicateGroups: fetchDuplicates } = useContactIntelligence();
 const { accounts } = useZaloAccounts();
 
 const showDialog = ref(false);
 const showDuplicateDialog = ref(false);
 const selectedContact = ref<Contact | null>(null);
+const loadingMore = ref(false);
+
+const hasMore = computed(() => contacts.value.length < total.value);
+
+async function loadMore() {
+  if (loadingMore.value) return;
+  loadingMore.value = true;
+  pagination.page++;
+  await fetchContacts(true);
+  loadingMore.value = false;
+}
 
 const zaloAccountOptions = computed(() => [
   { title: 'Tất cả Zalo', value: '' },
