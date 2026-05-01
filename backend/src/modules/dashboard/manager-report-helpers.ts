@@ -74,7 +74,7 @@ export async function buildTeamConversion(
       )) AS leads_lost
     FROM zalo_accounts za
     LEFT JOIN conversations conv ON conv.zalo_account_id = za.id AND conv."threadType" = 'user'
-    LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
+    LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false AND c.contact_type = 'customer'
     WHERE za.org_id = ${orgId}
       AND (${memberUid}::text = ''
            OR za.owner_user_id = ${memberUid}
@@ -137,6 +137,7 @@ export async function buildStageBottleneck(orgId: string, memberUid: string) {
     WHERE c.org_id = ${orgId}
       AND c.merged_into IS NULL
       AND c.is_group = false
+      AND c.contact_type = 'customer'
       AND c.status IS NOT NULL
       AND (${memberUid}::text = '' OR c.assigned_user_id = ${memberUid})
     GROUP BY c.status
@@ -167,6 +168,7 @@ export async function buildLostReasons(
       AND updated_at >= ${start}
       AND updated_at < ${end}
       AND is_group = false
+      AND contact_type = 'customer'
       AND (${memberUid}::text = '' OR assigned_user_id = ${memberUid})
     GROUP BY lost_reason
     ORDER BY count DESC
@@ -205,6 +207,7 @@ export async function buildInteractionQuality(
           AND m.sender_type = 'contact'
           AND m.sent_at >= ${start} AND m.sent_at < ${end}
           AND (c.is_group = false OR c.id IS NULL)
+          AND (c.contact_type = 'customer' OR c.id IS NULL)
           AND (${memberUid}::text = ''
                OR za.owner_user_id = ${memberUid}
                OR EXISTS (SELECT 1 FROM zalo_account_access zaa
@@ -224,6 +227,7 @@ export async function buildInteractionQuality(
         AND conv.is_replied = false
         AND conv.last_message_at < NOW() - INTERVAL '24 hours'
         AND (c.is_group = false OR c.id IS NULL)
+        AND (c.contact_type = 'customer' OR c.id IS NULL)
         AND (${memberUid}::text = ''
              OR za.owner_user_id = ${memberUid}
              OR EXISTS (SELECT 1 FROM zalo_account_access zaa
@@ -243,6 +247,7 @@ export async function buildInteractionQuality(
           AND m.sender_type = 'self'
           AND m.sent_at >= ${start} AND m.sent_at < ${end}
           AND (c.is_group = false OR c.id IS NULL)
+          AND (c.contact_type = 'customer' OR c.id IS NULL)
           AND (${memberUid}::text = ''
                OR za.owner_user_id = ${memberUid}
                OR EXISTS (SELECT 1 FROM zalo_account_access zaa
