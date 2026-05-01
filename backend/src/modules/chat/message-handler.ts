@@ -291,7 +291,7 @@ async function upsertContact(msg: IncomingMessage, orgId: string): Promise<strin
 
   const existing = await prisma.contact.findUnique({
     where: { orgId_zaloUid: { orgId, zaloUid: contactUid } },
-    select: { id: true, fullName: true, phone: true },
+    select: { id: true, fullName: true, phone: true, status: true, lastActivity: true },
   });
 
   if (!existing) {

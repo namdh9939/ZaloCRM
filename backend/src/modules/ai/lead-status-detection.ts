@@ -21,6 +21,10 @@ import { generateWithAnthropic } from './providers/anthropic.js';
 import { generateWithGemini } from './providers/gemini.js';
 import { generateWithOpenaiCompat } from './providers/openai-compat.js';
 
+import { logStatusChange } from '../../shared/utils/status-logger.js';
+import { computeConvertedAtDelta } from '../../shared/utils/contact-status.js';
+import { runAutomationRules } from '../automation/automation-service.js';
+
 // ── Socket.IO ─────────────────────────────────────────────────────────────────
 // Set once at app startup (see app.ts) so this module can emit realtime events
 // to the frontend without going through request handlers.
@@ -222,27 +226,83 @@ export async function detectLeadStatus(
     return null;
   }
 
-  // 6. Persist suggestion (chưa commit vào contact.status — đợi nhân viên Apply)
+  // 6. Auto-apply or suggest
+  const aiSettings = await prisma.appSetting.findMany({
+    where: { orgId, settingKey: { in: ['ai_auto_apply_status', 'ai_enabled'] } },
+  });
+  const autoApply = aiSettings.find(s => s.settingKey === 'ai_auto_apply_status')?.valuePlain === 'true';
+
   const trimmedReason = reason.slice(0, 500);
-  await prisma.contact.update({
-    where: { id: contactId },
-    data: {
+
+  if (autoApply) {
+    // 6a. Direct update (Auto-Transition)
+    const updated = await prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        status: rawSuggested,
+        ...computeConvertedAtDelta(rawSuggested, contact.status, undefined),
+        suggestedStatus: null,
+        suggestedStatusReason: null,
+        suggestedStatusAt: null,
+      },
+    });
+
+    await logStatusChange({
+      contactId,
+      orgId,
+      fromStatus: contact.status,
+      toStatus: rawSuggested,
+      userId: 'ai-agent', // System/AI identifier
+    });
+
+    // Trigger automations
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true },
+    });
+    void runAutomationRules({
+      trigger: 'status_changed',
+      orgId,
+      org,
+      contact: {
+        id: updated.id,
+        fullName: updated.fullName,
+        phone: updated.phone,
+        status: updated.status,
+        source: updated.source,
+        assignedUserId: updated.assignedUserId,
+      },
+    });
+
+    io?.emit('contact:suggestion-updated', {
+      contactId,
+      orgId,
+      suggestedStatus: null,
+      suggestedStatusReason: null,
+    });
+    
+    logger.info(`[lead-status] AUTO-APPLIED contact=${contactId} status=${rawSuggested}`);
+  } else {
+    // 6b. Persist suggestion (Manual Mode)
+    await prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        suggestedStatus: rawSuggested,
+        suggestedStatusReason: trimmedReason,
+        suggestedStatusAt: new Date(),
+      },
+    });
+
+    io?.emit('contact:suggestion-updated', {
+      contactId,
+      orgId,
       suggestedStatus: rawSuggested,
       suggestedStatusReason: trimmedReason,
-      suggestedStatusAt: new Date(),
-    },
-  });
+      suggestedStatusAt: new Date().toISOString(),
+    });
 
-  io?.emit('contact:suggestion-updated', {
-    contactId,
-    orgId,
-    suggestedStatus: rawSuggested,
-    suggestedStatusReason: trimmedReason,
-  });
-
-  logger.info(
-    `[lead-status] contact=${contactId} current=${contact.status} suggested=${rawSuggested}`,
-  );
+    logger.info(`[lead-status] SUGGESTED contact=${contactId} status=${rawSuggested}`);
+  }
 
   return { suggestedStatus: rawSuggested, statusReason: reason };
 }
