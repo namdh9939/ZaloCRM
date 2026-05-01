@@ -17,6 +17,8 @@ type AutomationAction =
   | { type: 'assign_user'; userId: string }
   | { type: 'send_template'; templateId: string }
   | { type: 'update_status'; status: string }
+  | { type: 'add_tag'; tag: string }
+  | { type: 'remove_tag'; tag: string }
   | { type: 'create_appointment'; offsetHours?: number; typeLabel?: string; notes?: string };
 
 export interface AutomationContext {
@@ -117,6 +119,28 @@ async function executeAction(action: AutomationAction, context: AutomationContex
 
   if (action.type === 'update_status' && action.status) {
     await updateStatusAction(context.contact.id, action.status);
+    return;
+  }
+
+  if (action.type === 'add_tag' && action.tag) {
+    const contact = await prisma.contact.findUnique({ where: { id: context.contact.id }, select: { tags: true } });
+    if (contact && !contact.tags.includes(action.tag)) {
+      await prisma.contact.update({
+        where: { id: context.contact.id },
+        data: { tags: { set: [...contact.tags, action.tag] } },
+      });
+    }
+    return;
+  }
+
+  if (action.type === 'remove_tag' && action.tag) {
+    const contact = await prisma.contact.findUnique({ where: { id: context.contact.id }, select: { tags: true } });
+    if (contact && contact.tags.includes(action.tag)) {
+      await prisma.contact.update({
+        where: { id: context.contact.id },
+        data: { tags: { set: contact.tags.filter(t => t !== action.tag) } },
+      });
+    }
     return;
   }
 
