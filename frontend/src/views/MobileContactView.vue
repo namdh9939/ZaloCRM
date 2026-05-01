@@ -184,11 +184,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import ContactDetailDialog from '@/components/contacts/ContactDetailDialog.vue';
 import DuplicateReviewDialog from '@/components/contacts/DuplicateReviewDialog.vue';
 import { useContacts, STATUS_OPTIONS, SOURCE_OPTIONS } from '@/composables/use-contacts';
+import { useContactIntelligence } from '@/composables/use-contacts';
 import { useZaloAccounts } from '@/composables/use-zalo-accounts';
 import { formatDate } from '@/utils/date-format';
 import type { Contact } from '@/composables/use-contacts';
 
-const { contacts, total, loading, filters, fetchContacts, duplicateTotal, fetchDuplicates } = useContacts();
+const { contacts, total, loading, filters, fetchContacts } = useContacts();
+const { duplicateTotal, fetchDuplicateGroups: fetchDuplicates } = useContactIntelligence();
 const { accounts } = useZaloAccounts();
 
 const showDialog = ref(false);
