@@ -35,11 +35,15 @@ import { zaloSyncRoutes } from './modules/zalo/zalo-sync-routes.js';
 import { zaloPool } from './modules/zalo/zalo-pool.js';
 import { registerZaloSocketHandlers } from './modules/zalo/zalo-socket.js';
 import { notificationRoutes } from './modules/notifications/notification-routes.js';
+import { pushRoutes } from './modules/notifications/push-routes.js';
+import { initWebPush } from './modules/notifications/push-service.js';
 import { searchRoutes } from './modules/search/search-routes.js';
 import { startZaloHealthCheck } from './modules/zalo/zalo-health-check.js';
 import { publicApiRoutes } from './modules/api/public-api-routes.js';
 import { webhookSettingsRoutes } from './modules/api/webhook-settings-routes.js';
 import { startContactIntelligence } from './modules/contacts/contact-intelligence.js';
+import { startServiceScoringCron } from './modules/ai/service-scoring-cron.js';
+import { setLeadStatusIo } from './modules/ai/lead-status-detection.js';
 import { analyticsRoutes } from './modules/analytics/analytics-routes.js';
 import { savedReportRoutes } from './modules/analytics/saved-report-routes.js';
 import { integrationRoutes } from './modules/integrations/integration-routes.js';
@@ -107,6 +111,9 @@ async function bootstrap() {
   // Register Zalo Socket.IO event handlers
   registerZaloSocketHandlers(io);
 
+  // Init Web Push (VAPID) — chạy sau khi server khởi động
+  initWebPush();
+
   // ── Routes ────────────────────────────────────────────────────────────────
 
   await app.register(authRoutes);
@@ -124,6 +131,7 @@ async function bootstrap() {
   await app.register(zaloAccessRoutes);
   await app.register(zaloSyncRoutes);
   await app.register(notificationRoutes);
+  await app.register(pushRoutes);
   await app.register(searchRoutes);
   await app.register(publicApiRoutes);
   await app.register(webhookSettingsRoutes);
@@ -177,6 +185,8 @@ async function bootstrap() {
     startAppointmentReminder(io);
     startZaloHealthCheck();
     startContactIntelligence();
+    startServiceScoringCron();
+    setLeadStatusIo(io);
   } catch (err) {
     logger.error('Failed to start server:', err);
     process.exit(1);

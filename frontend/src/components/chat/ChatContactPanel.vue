@@ -13,33 +13,47 @@
     </div>
 
     <div class="pa-3">
-      <!-- Lead score + last activity display -->
-      <div v-if="props.contact" class="d-flex align-center mb-3 ga-2">
-        <v-chip
-          :color="scoreColor(props.contact.leadScore)"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-star"
-        >
-          {{ props.contact.leadScore ?? 0 }} điểm
-        </v-chip>
-        <span v-if="props.contact.lastActivity" class="text-caption text-grey">
-          {{ relativeTime(props.contact.lastActivity) }}
+      <!-- Last activity display -->
+      <div v-if="props.contact && props.contact.lastActivity" class="d-flex align-center mb-3 ga-2">
+        <span class="text-caption text-grey">
+          Hoạt động: {{ relativeTime(props.contact.lastActivity) }}
         </span>
       </div>
+
+      <!-- AI suggested status — staff sees this directly while chatting -->
+      <SuggestedStatusBadge
+        v-if="props.contact?.id && props.contact?.suggestedStatus"
+        :contact-id="props.contact.id"
+        :suggested-status="props.contact.suggestedStatus"
+        :suggested-status-reason="props.contact.suggestedStatusReason"
+        @applied="onSuggestionApplied"
+        @rejected="onSuggestionRejected"
+      />
 
       <v-text-field v-model="form.crmName" label="Tên CRM (tên thật)" density="compact" variant="outlined" class="mb-2" hide-details
         hint="Tên chuẩn hóa dùng cho automation, VD: Nguyễn Văn Hải" persistent-hint />
       <v-text-field v-model="form.fullName" label="Tên hiển thị Zalo" density="compact" variant="outlined" class="mb-2" hide-details
         hint="Tên gợi nhớ trên Zalo, VD: Hải - Quan tâm 2PN" persistent-hint />
       <v-text-field v-model="form.phone" label="Số điện thoại" density="compact" variant="outlined" class="mb-2" hide-details />
-      <v-text-field v-model="form.email" label="Email" type="email" density="compact" variant="outlined" class="mb-2" hide-details />
 
       <v-select v-model="form.source" label="Nguồn" :items="SOURCE_OPTIONS" item-title="text" item-value="value"
         density="compact" variant="outlined" clearable class="mb-2" hide-details />
 
       <v-select v-model="form.status" label="Trạng thái" :items="STATUS_OPTIONS" item-title="text" item-value="value"
         density="compact" variant="outlined" clearable class="mb-2" hide-details />
+
+      <v-select
+        v-model="form.contactType"
+        :items="CONTACT_TYPE_OPTIONS"
+        item-title="text"
+        item-value="value"
+        label="Loại liên hệ"
+        hint="Nội bộ và Đối tác sẽ không được tính vào phễu chuyển đổi"
+        persistent-hint
+        density="compact"
+        variant="outlined"
+        class="mb-2"
+      />
 
       <!-- Assign to employee (owner/admin only) -->
       <v-select
@@ -111,6 +125,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { SOURCE_OPTIONS, STATUS_OPTIONS, useContacts } from '@/composables/use-contacts';
+
+const CONTACT_TYPE_OPTIONS = [
+  { text: 'Khách hàng', value: 'customer' },
+  { text: 'Nội bộ', value: 'internal' },
+  { text: 'Đối tác', value: 'partner' },
+];
 import type { Contact } from '@/composables/use-contacts';
 import type { AiSentiment } from '@/composables/use-chat';
 import { useChatContactPanel } from '@/composables/use-chat-contact-panel';
@@ -118,6 +138,7 @@ import ChatAppointments from './ChatAppointments.vue';
 import AiSummaryCard from '@/components/ai/ai-summary-card.vue';
 import AiSentimentBadge from '@/components/ai/ai-sentiment-badge.vue';
 import DatePicker from '@/components/DatePicker.vue';
+import SuggestedStatusBadge from '@/components/contacts/SuggestedStatusBadge.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useUsers } from '@/composables/use-users';
 
@@ -175,17 +196,31 @@ const {
   () => emit('saved'),
 );
 
-function scoreColor(score: number) {
-  if (score >= 70) return 'success';
-  if (score >= 40) return 'orange';
-  return 'error';
-}
-
 function relativeTime(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   if (days === 0) return 'Hôm nay';
   if (days === 1) return 'Hôm qua';
   return `${days} ngày trước`;
+}
+
+function onSuggestionApplied(newStatus: string) {
+  // Form's status is bound separately by useChatContactPanel — sync it manually.
+  form.value.status = newStatus;
+  if (props.contact) {
+    props.contact.status = newStatus;
+    props.contact.suggestedStatus = null;
+    props.contact.suggestedStatusReason = null;
+    props.contact.suggestedStatusAt = null;
+  }
+  emit('saved');
+}
+
+function onSuggestionRejected() {
+  if (props.contact) {
+    props.contact.suggestedStatus = null;
+    props.contact.suggestedStatusReason = null;
+    props.contact.suggestedStatusAt = null;
+  }
 }
 </script>

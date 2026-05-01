@@ -53,7 +53,7 @@
     <v-card class="mb-4" variant="outlined">
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2" color="primary">mdi-account-tie</v-icon>
-        1. Hiệu suất chuyển đổi theo nhân viên
+        1. Hiệu suất chuyển đổi theo tài khoản Zalo
       </v-card-title>
       <v-card-subtitle>
         Tỉ lệ <strong>tiếp cận</strong> phản ánh tốc độ xử lý lead mới. Tỉ lệ <strong>chuyển đổi</strong>
@@ -63,7 +63,7 @@
         <v-table density="comfortable">
           <thead>
             <tr>
-              <th>Nhân viên</th>
+              <th>Tài khoản Zalo</th>
               <th class="text-center">Lead tiếp nhận</th>
               <th class="text-center">Đã tư vấn</th>
               <th class="text-center">Chốt đơn</th>
@@ -72,13 +72,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in teamConversion" :key="row.userId">
-              <td>
-                {{ row.fullName }}
-                <v-chip v-if="row.role !== 'member'" size="x-small" class="ml-1" variant="tonal" color="primary">
-                  {{ roleLabel(row.role) }}
-                </v-chip>
-              </td>
+            <tr v-for="row in teamConversion" :key="row.zaloAccountId">
+              <td>{{ row.displayName }}</td>
               <td class="text-center">{{ row.leadsReceived }}</td>
               <td class="text-center">{{ row.leadsAdvised }}</td>
               <td class="text-center font-weight-bold">{{ row.leadsConverted }}</td>
@@ -181,21 +176,21 @@
       </v-card-title>
       <v-card-subtitle>
         Thời gian phản hồi, hội thoại tồn đọng và mức độ chủ động theo dõi khách hàng
-        phản ánh trực tiếp chất lượng dịch vụ của từng nhân viên.
+        phản ánh trực tiếp chất lượng dịch vụ của từng tài khoản Zalo.
       </v-card-subtitle>
       <v-card-text>
         <v-table density="comfortable">
           <thead>
             <tr>
-              <th>Nhân viên</th>
+              <th>Tài khoản Zalo</th>
               <th class="text-center">Thời gian phản hồi TB</th>
               <th class="text-center">Hội thoại tồn đọng (&gt; 24h)</th>
               <th class="text-center">Tỉ lệ chủ động theo dõi</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in interactionQuality" :key="row.userId">
-              <td>{{ row.fullName }}</td>
+            <tr v-for="row in interactionQuality" :key="row.zaloAccountId">
+              <td>{{ row.displayName }}</td>
               <td class="text-center">
                 <span v-if="row.avgReplyMinutes === null" class="text-grey">—</span>
                 <span v-else :style="{ color: replyTimeColor(row.avgReplyMinutes) }" class="font-weight-medium">
@@ -239,13 +234,13 @@ import {
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface TeamRow {
-  userId: string; fullName: string; role: string;
+  zaloAccountId: string; displayName: string;
   leadsReceived: number; leadsAdvised: number; leadsConverted: number;
   reachRate: number | null; closeRate: number | null;
 }
 interface StageRow { status: string | null; label: string; count: number; avgDaysInStage: number | null; maxDaysInStage: number | null; }
 interface LostRow { reason: string; label: string; count: number; percent: number; }
-interface QualityRow { userId: string; fullName: string; avgReplyMinutes: number | null; deadConversations: number; proactiveRate: number | null; }
+interface QualityRow { zaloAccountId: string; displayName: string; avgReplyMinutes: number | null; deadConversations: number; proactiveRate: number | null; }
 interface TrendPoint { weekStart: string; leads: number; converted: number; }
 
 const today = new Date().toISOString().slice(0, 10);
@@ -318,11 +313,6 @@ const trendChartOptions: any = {
   scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
 };
 
-function roleLabel(role: string): string {
-  if (role === 'owner') return 'Chủ';
-  if (role === 'admin') return 'QT';
-  return '';
-}
 function rateColor(rate: number, redBelow: number, greenAbove: number): string {
   if (rate < redBelow) return '#EF5350';
   if (rate >= greenAbove) return '#4CAF50';

@@ -5,7 +5,7 @@ import { updateStatusAction } from './actions/update-status-action.js';
 import { createAppointmentAction } from './actions/create-appointment-action.js';
 import { sendTemplateAction } from './actions/send-template-action.js';
 
-export type AutomationTriggerType = 'message_received' | 'contact_created' | 'status_changed';
+export type AutomationTriggerType = 'message_received' | 'contact_created' | 'status_changed' | 'contact_updated';
 
 type AutomationCondition = {
   field: string;
@@ -24,7 +24,7 @@ export interface AutomationContext {
   orgId: string;
   initiatedByAutomation?: boolean;
   _depth?: number;
-  contact?: { id: string; fullName: string | null; crmName?: string | null; phone: string | null; status: string | null; source?: string | null; assignedUserId?: string | null } | null;
+  contact?: { id: string; fullName: string | null; crmName?: string | null; phone: string | null; status: string | null; source?: string | null; assignedUserId?: string | null; tags?: string[] } | null;
   conversation?: { id: string; unreadCount?: number; threadId?: string | null; threadType?: string; zaloAccountId?: string } | null;
   message?: { id: string; content: string | null; contentType: string; senderType?: string } | null;
   org?: { id: string; name: string | null } | null;
@@ -95,6 +95,8 @@ function getFieldValue(field: string, context: AutomationContext): unknown {
   switch (field) {
     case 'contact.source': return context.contact?.source;
     case 'contact.status': return context.contact?.status;
+    case 'contact.fullName': return context.contact?.fullName;
+    case 'contact.tags': return context.contact?.tags;
     case 'contact.assignedUserId': return context.contact?.assignedUserId;
     case 'message.content': return context.message?.content;
     case 'message.contentType': return context.message?.contentType;

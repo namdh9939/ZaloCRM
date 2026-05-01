@@ -15,7 +15,7 @@ export interface ConversionFunnelResult {
   avgConversionDays: number | null; // avg days from creation to "converted"
 }
 
-const STAGE_ORDER = ['new', 'contacted', 'interested', 'converted', 'lost'];
+const STAGE_ORDER = ['new', 'consulting', 'quoting', 'nurturing', 'converted', 'lost'];
 
 export async function getConversionFunnel(
   orgId: string,

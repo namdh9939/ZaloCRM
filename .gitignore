@@ -5,3 +5,4 @@ dist/
 backups/
 .DS_Store
 .gstack/
+temp_static/

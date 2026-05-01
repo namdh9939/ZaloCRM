@@ -2,7 +2,8 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps && \
+    npm i --no-save --include=optional lightningcss-linux-x64-musl @rollup/rollup-linux-x64-musl 2>/dev/null || true
 COPY frontend/ ./
 RUN npm run build
 

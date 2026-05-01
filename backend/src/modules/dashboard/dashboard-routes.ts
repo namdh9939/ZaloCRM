@@ -69,6 +69,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
 
       const contactWhere: Record<string, any> = {
         orgId,
+        contactType: 'customer', // exclude internal/partner from KPI counts
         ...mergedContactFilter,
       };
       if (zaloAccountId) contactWhere.conversations = { some: { zaloAccountId } };
@@ -76,7 +77,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
       // Pending-reply KPIs only count individual (non-group) chats, regardless
       // of which tab the user is on. Groups generate lots of noise that
       // doesn't belong in a "you need to respond" counter.
-      const pendingContactFilter: Record<string, any> = { ...memberFlat, isGroup: false };
+      const pendingContactFilter: Record<string, any> = { ...memberFlat, isGroup: false, contactType: 'customer' };
       const pendingWhere: Record<string, any> = {
         orgId,
         contact: pendingContactFilter,
@@ -238,6 +239,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
       const where: Record<string, any> = {
         orgId,
         status: { not: null },
+        contactType: 'customer',
         ...memberContactScope(request.user!),
         ...viewContactFilter(view),
       };
@@ -259,6 +261,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
       const baseWhere: Record<string, any> = {
         orgId,
         source: { not: null },
+        contactType: 'customer',
         ...memberContactScope(request.user!),
         ...viewContactFilter(view),
       };
@@ -320,6 +323,163 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
     } catch (err) {
       logger.error('[dashboard] Appointments error:', err);
       return reply.status(500).send({ error: 'Failed to fetch appointment stats' });
+    }
+  });
+
+  /**
+   * GET /api/v1/dashboard/service-quality
+   * Thống kê Điểm Phục Vụ (Service Quality Score) cho quản lý.
+   *
+   * Trả về:
+   *   - distribution: số lượng hội thoại theo từng label (success/info/warning/error)
+   *   - actionRequired: danh sách hội thoại cần quản lý vào đọc ngay
+   *   - staffSummary: điểm trung bình theo từng nhân viên
+   *   - avgScore: điểm trung bình toàn org trong kỳ
+   *
+   * Query params:
+   *   - zaloAccountId: lọc theo tài khoản Zalo
+   *   - from / to: lọc theo khoảng thời gian (serviceScoreAt)
+   *   - view: sale | cskh
+   */
+  app.get('/api/v1/dashboard/service-quality', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { orgId, role, id: userId } = request.user!;
+      const query = request.query as QueryParams;
+
+      // Chỉ owner/admin được xem service quality
+      if (!['owner', 'admin'].includes(role)) {
+        return reply.status(403).send({ error: 'Chỉ quản lý mới được xem chất lượng phục vụ' });
+      }
+
+      const { today, tomorrow } = todayRange();
+      const defaultFrom = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 ngày
+
+      const from = query.from ? new Date(query.from) : defaultFrom;
+      const to = query.to ? new Date(query.to) : tomorrow;
+
+      // Build where cho conversations đã được chấm điểm
+      const convWhere: any = {
+        orgId,
+        serviceScoreAt: { gte: from, lte: to },
+        serviceScore: { not: null },
+      };
+      if (query.zaloAccountId) convWhere.zaloAccountId = query.zaloAccountId;
+
+      // View filter (sale/cskh) thông qua contact
+      const viewFilter = viewViaContactFilter(query.view);
+      if (Object.keys(viewFilter).length > 0) {
+        convWhere.contact = viewFilter.contact;
+      }
+
+      // 1. Phân bố label
+      const labelGroups = await prisma.conversation.groupBy({
+        by: ['serviceLabel'],
+        where: convWhere,
+        _count: true,
+      });
+
+      const distribution = {
+        success: 0,
+        info: 0,
+        warning: 0,
+        error: 0,
+        total: 0,
+      };
+      for (const g of labelGroups) {
+        const label = g.serviceLabel as string;
+        if (label in distribution) {
+          (distribution as any)[label] = g._count;
+        }
+        distribution.total += g._count;
+      }
+
+      // 2. Danh sách hội thoại cần action (managerActionRequired = true)
+      const actionRequired = await prisma.conversation.findMany({
+        where: { ...convWhere, managerActionRequired: true },
+        orderBy: { serviceScoreAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          serviceScore: true,
+          serviceLabel: true,
+          serviceScoreAt: true,
+          serviceScoreData: true,
+          contact: {
+            select: { id: true, fullName: true, crmName: true, avatarUrl: true },
+          },
+          zaloAccount: {
+            select: {
+              id: true,
+              displayName: true,
+              owner: { select: { id: true, fullName: true } },
+            },
+          },
+        },
+      });
+
+      // 3. Điểm trung bình toàn kỳ
+      const avgResult = await prisma.conversation.aggregate({
+        where: convWhere,
+        _avg: { serviceScore: true },
+        _count: { serviceScore: true },
+      });
+
+      // 4. Thống kê theo nhân viên (qua zaloAccount.owner)
+      const staffConvs = await prisma.conversation.findMany({
+        where: convWhere,
+        select: {
+          serviceScore: true,
+          serviceLabel: true,
+          zaloAccount: {
+            select: {
+              owner: { select: { id: true, fullName: true } },
+            },
+          },
+        },
+      });
+
+      // Gom nhóm theo staff
+      const staffMap = new Map<string, { fullName: string; scores: number[]; labels: Record<string, number> }>();
+      for (const c of staffConvs) {
+        if (c.serviceScore === null) continue;
+        const owner = c.zaloAccount?.owner;
+        if (!owner) continue;
+        if (!staffMap.has(owner.id)) {
+          staffMap.set(owner.id, { fullName: owner.fullName, scores: [], labels: { success: 0, info: 0, warning: 0, error: 0 } });
+        }
+        const entry = staffMap.get(owner.id)!;
+        entry.scores.push(c.serviceScore);
+        const lbl = c.serviceLabel || 'info';
+        if (lbl in entry.labels) entry.labels[lbl]++;
+      }
+
+      const staffSummary = Array.from(staffMap.entries()).map(([id, data]) => ({
+        userId: id,
+        fullName: data.fullName,
+        avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
+        totalScored: data.scores.length,
+        labels: data.labels,
+      })).sort((a, b) => a.avgScore - b.avgScore); // sắp xếp điểm thấp → cao để quản lý dễ nhận ra ai cần hỗ trợ
+
+      return {
+        period: { from: from.toISOString(), to: to.toISOString() },
+        distribution,
+        avgScore: avgResult._avg.serviceScore ? Math.round(avgResult._avg.serviceScore) : null,
+        totalScored: avgResult._count.serviceScore,
+        actionRequired: actionRequired.map((c) => ({
+          conversationId: c.id,
+          serviceScore: c.serviceScore,
+          serviceLabel: c.serviceLabel,
+          serviceScoreAt: c.serviceScoreAt,
+          summary: (c.serviceScoreData as any)?.summary ?? null,
+          contact: c.contact,
+          staff: c.zaloAccount?.owner ?? null,
+        })),
+        staffSummary,
+      };
+    } catch (err) {
+      logger.error('[dashboard] Service quality error:', err);
+      return reply.status(500).send({ error: 'Failed to fetch service quality stats' });
     }
   });
 }

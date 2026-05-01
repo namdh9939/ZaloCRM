@@ -47,12 +47,22 @@
       </v-col>
     </v-row>
 
-    <v-row>
+    <v-row class="mb-4">
       <v-col cols="12" md="6">
         <SourceChart :data="sources" />
       </v-col>
       <v-col cols="12" md="6">
         <AppointmentChart :data="appointments" />
+      </v-col>
+    </v-row>
+
+    <!-- Widget Chất lượng Phục Vụ — chỉ hiển thị ở tab CSKH và với owner/admin -->
+    <v-row v-if="view === 'cskh' && isManager">
+      <v-col cols="12">
+        <ServiceQualityWidget
+          :zalo-account-id="zaloAccountId || undefined"
+          :view="view"
+        />
       </v-col>
     </v-row>
   </div>
@@ -65,8 +75,10 @@ import MessageVolumeChart from '@/components/dashboard/MessageVolumeChart.vue';
 import PipelineChart from '@/components/dashboard/PipelineChart.vue';
 import SourceChart from '@/components/dashboard/SourceChart.vue';
 import AppointmentChart from '@/components/dashboard/AppointmentChart.vue';
+import ServiceQualityWidget from '@/components/dashboard/ServiceQualityWidget.vue';
 import { useDashboard } from '@/composables/use-dashboard';
 import { useZaloAccounts } from '@/composables/use-zalo-accounts';
+import { useAuthStore } from '@/stores/auth';
 
 const {
   kpi, messageVolume, pipeline, sources, appointments,
@@ -74,8 +86,12 @@ const {
 } = useDashboard();
 
 const { accounts, fetchAccounts } = useZaloAccounts();
+const authStore = useAuthStore();
 const zaloAccountId = ref<string>('');
 const view = ref<'sale' | 'cskh'>('sale');
+
+// Widget chất lượng phục vụ chỉ dành cho owner/admin
+const isManager = computed(() => authStore.isAdmin);
 
 const zaloAccountOptions = computed(() => [
   { title: 'Tất cả Zalo', value: '' },

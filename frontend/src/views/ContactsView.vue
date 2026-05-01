@@ -76,16 +76,30 @@
         <span v-else class="text-grey">—</span>
       </template>
 
-      <!-- Email -->
-      <template #item.email="{ item }">
-        <span v-if="item.email" class="text-body-2">{{ item.email }}</span>
-        <span v-else class="text-grey">—</span>
-      </template>
+
 
       <!-- Status chip -->
       <template #item.status="{ item }">
         <v-chip
-          v-if="item.status"
+          v-if="item.contactType === 'internal'"
+          color="warning"
+          size="small"
+          variant="tonal"
+          class="mr-1"
+        >
+          Nội bộ
+        </v-chip>
+        <v-chip
+          v-else-if="item.contactType === 'partner'"
+          color="info"
+          size="small"
+          variant="tonal"
+          class="mr-1"
+        >
+          Đối tác
+        </v-chip>
+        <v-chip
+          v-else-if="item.status"
           :color="statusColor(item.status)"
           size="small"
           variant="tonal"
@@ -119,15 +133,27 @@
         <span class="text-body-2">{{ item.assignedUser?.fullName ?? '—' }}</span>
       </template>
 
-      <!-- Lead score -->
-      <template #item.leadScore="{ item }">
-        <v-chip
-          :color="scoreColor(item.leadScore)"
-          size="small"
-          variant="tonal"
+      <!-- Chất lượng CSKH (Service Quality Score) -->
+      <template #item.serviceScore="{ item }">
+        <v-tooltip
+          v-if="item.serviceScore !== null && item.serviceScore !== undefined"
+          :text="serviceLabelText(item.serviceLabel)"
+          location="top"
         >
-          {{ item.leadScore ?? 0 }}
-        </v-chip>
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="item.serviceLabel ?? 'grey'"
+              size="small"
+              variant="tonal"
+              class="font-weight-medium"
+            >
+              <v-icon start size="12">{{ serviceLabelIcon(item.serviceLabel) }}</v-icon>
+              {{ item.serviceScore }}
+            </v-chip>
+          </template>
+        </v-tooltip>
+        <span v-else class="text-grey text-caption">—</span>
       </template>
 
       <!-- Last activity -->
@@ -185,24 +211,23 @@ const individualHeaders = [
   { title: 'Tên Zalo', key: 'fullName', sortable: true },
   { title: 'Tên CRM', key: 'crmName', sortable: true },
   { title: 'SĐT', key: 'phone', sortable: false },
-  { title: 'Email', key: 'email', sortable: false },
   { title: 'Nguồn', key: 'source', sortable: false },
   { title: 'Trạng thái', key: 'status', sortable: false },
   { title: 'Chuyển đổi', key: 'convertedAt', sortable: true },
   { title: 'Ngày tiếp nhận', key: 'firstContactDate', sortable: true },
   { title: 'Sale', key: 'assignedUser', sortable: false },
-  { title: 'Điểm', key: 'leadScore', sortable: true, width: '80px' },
+  { title: 'CL Phục Vụ', key: 'serviceScore', sortable: true, width: '110px' },
   { title: 'Hoạt động', key: 'lastActivity', sortable: true },
 ];
 
-// Group tab — compact: Tên nhóm / Nguồn / Ngày tạo nhóm / Sale / Điểm / Hoạt động
+// Group tab — compact: Tên nhóm / Nguồn / Ngày tạo nhóm / Sale / CL Phục Vụ / Hoạt động
 const groupHeaders = [
   { title: '', key: 'avatarUrl', sortable: false, width: '48px' },
   { title: 'Tên nhóm', key: 'fullName', sortable: true },
   { title: 'Nguồn', key: 'source', sortable: false },
   { title: 'Ngày tiếp nhận', key: 'createdAt', sortable: true },
   { title: 'Sale', key: 'assignedUser', sortable: false },
-  { title: 'Điểm', key: 'leadScore', sortable: true, width: '80px' },
+  { title: 'CL Phục Vụ', key: 'serviceScore', sortable: true, width: '110px' },
   { title: 'Hoạt động', key: 'lastActivity', sortable: true },
 ];
 
@@ -221,18 +246,33 @@ function statusLabel(value: string) {
 function statusColor(status: string) {
   const map: Record<string, string> = {
     new: 'grey',
-    contacted: 'blue',
-    interested: 'orange',
+    consulting: 'blue',
+    quoting: 'orange',
+    nurturing: 'purple',
     converted: 'success',
     lost: 'error',
   };
   return map[status] ?? 'grey';
 }
 
-function scoreColor(score: number) {
-  if (score >= 70) return 'success';
-  if (score >= 40) return 'orange';
-  return 'error';
+function serviceLabelText(label: string | null | undefined): string {
+  const map: Record<string, string> = {
+    success: '✅ Xuất sắc (85-100)',
+    info: '🔵 Đạt yêu cầu (70-84)',
+    warning: '⚠️ Cần nhắc nhở (50-69)',
+    error: '🔴 Báo động đỏ (<50)',
+  };
+  return map[label ?? ''] ?? 'Chưa chấm điểm';
+}
+
+function serviceLabelIcon(label: string | null | undefined): string {
+  const map: Record<string, string> = {
+    success: 'mdi-star',
+    info: 'mdi-check-circle',
+    warning: 'mdi-alert',
+    error: 'mdi-alert-octagon',
+  };
+  return map[label ?? ''] ?? 'mdi-help-circle';
 }
 
 function groupDate(item: Contact & { metadata?: Record<string, unknown> | null }) {

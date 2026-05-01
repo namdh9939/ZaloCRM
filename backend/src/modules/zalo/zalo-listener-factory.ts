@@ -7,6 +7,8 @@ import type { Server } from 'socket.io';
 import { logger } from '../../shared/utils/logger.js';
 import { handleIncomingMessage, handleMessageUndo } from '../chat/message-handler.js';
 import { detectContentType, updateContactAvatar } from './zalo-message-helpers.js';
+import { sendPushToOrgUsers, isWebPushEnabled } from '../notifications/push-service.js';
+import { prisma } from '../../shared/database/prisma-client.js';
 
 // Cached user info entry with 5-minute TTL
 export interface UserInfoCacheEntry {
@@ -199,6 +201,46 @@ export function attachZaloListener(ctx: ListenerContext): void {
           message: result.message,
           conversationId: result.conversationId,
         });
+
+        // ── Web Push — chỉ gửi khi tin đến từ khách (isSelf=false) ─────────
+        if (!message.isSelf && isWebPushEnabled()) {
+          try {
+            // Lấy orgId + assignedUserId của contact để gửi đúng người
+            const conv = await prisma.conversation.findUnique({
+              where: { id: result.conversationId },
+              select: {
+                orgId: true,
+                contact: { select: { assignedUserId: true, fullName: true, crmName: true } },
+              },
+            });
+            if (conv) {
+              const displayName = senderName
+                || conv.contact?.crmName
+                || conv.contact?.fullName
+                || 'Khách hàng';
+              const msgPreview = content
+                ? content.slice(0, 100)
+                : contentType === 'image' ? '📷 Đã gửi ảnh'
+                : contentType === 'sticker' ? '🎭 Đã gửi sticker'
+                : '📎 Đã gửi file';
+
+              const targetUserIds = conv.contact?.assignedUserId
+                ? [conv.contact.assignedUserId]
+                : undefined; // undefined = gửi cho toàn org
+
+              await sendPushToOrgUsers(conv.orgId, {
+                title: displayName,
+                body: msgPreview,
+                icon: '/pwa-192x192.svg',
+                badge: '/pwa-192x192.svg',
+                tag: result.conversationId,
+                data: { conversationId: result.conversationId, url: '/chat' },
+              }, { userIds: targetUserIds });
+            }
+          } catch (pushErr) {
+            logger.warn(`[zalo:${accountId}] Push notification error:`, pushErr);
+          }
+        }
       }
     } catch (err) {
       logger.error(`[zalo:${accountId}] Message handler error:`, err);

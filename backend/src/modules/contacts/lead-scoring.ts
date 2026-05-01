@@ -71,7 +71,7 @@ export async function computeLeadScore(contactId: string): Promise<number> {
 
 export async function computeAllLeadScores(): Promise<void> {
   const contacts = await prisma.contact.findMany({
-    where: { mergedInto: null },
+    where: { mergedInto: null, contactType: 'customer' },
     select: { id: true, updatedAt: true },
   });
 

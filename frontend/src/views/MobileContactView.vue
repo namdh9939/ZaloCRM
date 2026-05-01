@@ -97,8 +97,8 @@ const selectedContact = ref<Contact | null>(null);
 
 function statusColor(status: string) {
   const map: Record<string, string> = {
-    new: 'grey', contacted: 'blue', interested: 'orange',
-    converted: 'success', lost: 'error',
+    new: 'grey', consulting: 'blue', quoting: 'orange',
+    nurturing: 'purple', converted: 'success', lost: 'error',
   };
   return map[status] ?? 'grey';
 }

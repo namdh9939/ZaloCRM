@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SOP Quản lý trạng thái khách hàng - ZaloCRM</title>
+<style>
+@page{size:A4;margin:25mm 20mm 25mm 30mm}
+body{margin:0;padding:0;font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.6;color:#000}
+.page-a4{width:794px;min-height:1123px;margin:0 auto;padding:40px;background:#fff}
+h1{text-transform:uppercase;font-size:16pt;font-weight:bold;text-align:center;margin:12pt 0}
+h2{text-transform:uppercase;font-size:14pt;font-weight:bold;color:#2f5597;border-bottom:2px solid #2f5597;padding-bottom:4px;margin-top:16pt}
+h3{font-size:13pt;font-weight:bold;border-left:4px solid #2f5597;padding-left:8px;margin-top:12pt}
+p{text-align:justify;margin-top:6pt;margin-bottom:6pt}
+table{width:100%;border-collapse:collapse;margin:10pt 0;font-size:11pt}
+th,td{border:1px solid #000;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#2f5597;color:#fff;font-weight:bold;text-align:center}
+.hl{background:#fff2cc}
+.note{border-left:4px solid #c00000;padding:8px 12px;background:#fef2f2;margin:10pt 0}
+.info{border:1px solid #2f5597;padding:10px 14px;background:#e8f0fe;margin:10pt 0}
+ul,ol{margin-left:20px;padding-left:10px}
+li{margin-bottom:4pt}
+.meta{text-align:center;font-size:11pt;color:#555;margin-bottom:16pt}
+</style>
+</head>
+<body>
+<div class="page-a4">
+
+<h1>Quy tr&#236;nh v&#7853;n h&#224;nh ti&#234;u chu&#7849;n (SOP)<br>Qu&#7843;n l&#253; tr&#7841;ng th&#225;i kh&#225;ch h&#224;ng tr&#234;n ZaloCRM</h1>
+
+<p class="meta">M&#227; t&#224;i li&#7879;u: SOP-CRM-001 &nbsp;|&nbsp; Phi&#234;n b&#7843;n: 1.0 &nbsp;|&nbsp; Ng&#224;y ban h&#224;nh: 01/05/2026<br>&#193;p d&#7909;ng cho: To&#224;n b&#7897; nh&#226;n vi&#234;n Sale s&#7917; d&#7909;ng h&#7879; th&#7889;ng ZaloCRM</p>
+
+<h2>1. M&#7909;c &#273;&#237;ch</h2>
+<p>Th&#7889;ng nh&#7845;t c&#225;ch g&#7855;n v&#224; chuy&#7875;n &#273;&#7893;i tr&#7841;ng th&#225;i kh&#225;ch h&#224;ng tr&#234;n ZaloCRM, &#273;&#7843;m b&#7843;o:</p>
+<ul>
+<li>D&#7919; li&#7879;u ph&#7877;u b&#225;n h&#224;ng (pipeline) ch&#237;nh x&#225;c, ph&#7843;n &#225;nh &#273;&#250;ng th&#7921;c t&#7871;.</li>
+<li>Qu&#7843;n l&#253; c&#243; th&#7875; theo d&#245;i t&#7881; l&#7879; chuy&#7875;n &#273;&#7893;i v&#224; hi&#7879;u su&#7845;t ch&#259;m kh&#225;ch c&#7911;a t&#7915;ng nh&#226;n vi&#234;n.</li>
+<li>M&#7895;i nh&#226;n vi&#234;n hi&#7875;u r&#245; tr&#225;ch nhi&#7879;m v&#224; th&#7901;i h&#7841;n x&#7917; l&#253; t&#7841;i t&#7915;ng b&#432;&#7899;c.</li>
+</ul>
+
+<h2>2. Ph&#7841;m vi &#225;p d&#7909;ng</h2>
+<p>&#193;p d&#7909;ng cho t&#7845;t c&#7843; kh&#225;ch h&#224;ng c&#225; nh&#226;n (chat 1-1) tr&#234;n ZaloCRM. Kh&#244;ng &#225;p d&#7909;ng cho nh&#243;m Zalo.</p>
+
+<h2>3. &#272;&#7883;nh ngh&#297;a 5 tr&#7841;ng th&#225;i v&#224; ti&#234;u chu&#7849;n chuy&#7875;n &#273;&#7893;i</h2>
+<table>
+<tr><th>TT</th><th>Tr&#7841;ng th&#225;i</th><th>M&#227;</th><th>M&#224;u</th><th>&#272;&#7883;nh ngh&#297;a</th><th>&#272;i&#7873;u ki&#7879;n chuy&#7875;n</th></tr>
+<tr><td style="text-align:center">1</td><td><b>M&#7899;i</b></td><td>new</td><td>X&#225;m</td><td>KH v&#7915;a &#273;&#432;&#7907;c t&#7841;o, ch&#432;a c&#243; t&#432;&#417;ng t&#225;c n&#224;o t&#7915; nh&#226;n vi&#234;n.</td><td>T&#7921; &#273;&#7897;ng khi &#273;&#7891;ng b&#7897; danh b&#7841; ho&#7863;c th&#234;m KH th&#7911; c&#244;ng.</td></tr>
+<tr><td style="text-align:center">2</td><td><b>&#272;&#227; li&#234;n h&#7879;</b></td><td>contacted</td><td>Xanh d&#432;&#417;ng</td><td>NV &#273;&#227; g&#7917;i &#237;t nh&#7845;t 1 tin nh&#7855;n. Ch&#432;a x&#225;c &#273;&#7883;nh nhu c&#7847;u.</td><td><b>T&#7921; &#273;&#7897;ng:</b> Khi NV g&#7917;i tin nh&#7855;n &#273;&#7847;u ti&#234;n cho KH &#273;ang &#7903; "M&#7899;i".</td></tr>
+<tr class="hl"><td style="text-align:center">3</td><td><b>Quan t&#226;m</b></td><td>interested</td><td>Cam</td><td>KH th&#7875; hi&#7879;n quan t&#226;m r&#245;: h&#7887;i gi&#225;, t&#432; v&#7845;n, b&#225;o gi&#225;, s&#7843;n ph&#7849;m.</td><td><b>B&#225;n t&#7921; &#273;&#7897;ng:</b> H&#7879; th&#7889;ng nh&#7853;n t&#7915; kh&#243;a ("gi&#225;", "t&#432; v&#7845;n", "mua"...).<br><b>Th&#7911; c&#244;ng:</b> NV t&#7921; chuy&#7875;n khi &#273;&#225;nh gi&#225; KH c&#243; nhu c&#7847;u.</td></tr>
+<tr><td style="text-align:center">4</td><td><b>Chuy&#7875;n &#273;&#7893;i</b></td><td>converted</td><td>Xanh l&#225;</td><td>KH &#273;&#227; mua h&#224;ng, k&#253; h&#7907;p &#273;&#7891;ng, ho&#7863;c s&#7917; d&#7909;ng d&#7883;ch v&#7909;.</td><td><b>Th&#7911; c&#244;ng:</b> NV ph&#7843;i chuy&#7875;n v&#224; <u>b&#7855;t bu&#7897;c &#273;i&#7873;n Ng&#224;y chuy&#7875;n &#273;&#7893;i</u>.</td></tr>
+<tr><td style="text-align:center">5</td><td><b>M&#7845;t</b></td><td>lost</td><td>&#272;&#7887;</td><td>KH t&#7915; ch&#7889;i, kh&#244;ng c&#242;n nhu c&#7847;u, ho&#7863;c m&#7845;t li&#234;n l&#7841;c.</td><td><b>Th&#7911; c&#244;ng:</b> NV ph&#7843;i chuy&#7875;n v&#224; <u>b&#7855;t bu&#7897;c ch&#7885;n L&#253; do m&#7845;t kh&#225;ch</u>.</td></tr>
+</table>
+
+<h2>4. Quy &#273;&#7883;nh th&#7901;i gian x&#7917; l&#253; (SLA)</h2>
+<table>
+<tr><th>Tr&#7841;ng th&#225;i</th><th>Th&#7901;i gian t&#7889;i &#273;a</th><th>H&#224;nh &#273;&#7897;ng b&#7855;t bu&#7897;c</th></tr>
+<tr><td><b>M&#7899;i</b></td><td><b>15 ph&#250;t</b></td><td>G&#7917;i tin nh&#7855;n ch&#224;o h&#7887;i. H&#7879; th&#7889;ng t&#7921; &#273;&#7897;ng chuy&#7875;n sang "&#272;&#227; li&#234;n h&#7879;".</td></tr>
+<tr><td><b>&#272;&#227; li&#234;n h&#7879;</b></td><td><b>48 gi&#7901;</b></td><td>X&#225;c &#273;&#7883;nh nhu c&#7847;u KH, chuy&#7875;n sang "Quan t&#226;m" ho&#7863;c ghi ch&#250; r&#245; l&#253; do.</td></tr>
+<tr><td><b>Quan t&#226;m</b></td><td><b>7 ng&#224;y</b></td><td>G&#7917;i b&#225;o gi&#225;/t&#224;i li&#7879;u ho&#7863;c &#273;&#7863;t l&#7883;ch h&#7865;n. Ph&#7843;i c&#243; k&#7871;t qu&#7843;: "Chuy&#7875;n &#273;&#7893;i" ho&#7863;c "M&#7845;t".</td></tr>
+<tr><td><b>Chuy&#7875;n &#273;&#7893;i</b></td><td>Cu&#7889;i c&#249;ng</td><td>C&#7853;p nh&#7853;t: Ng&#224;y chuy&#7875;n &#273;&#7893;i, Ghi ch&#250;, Tags.</td></tr>
+<tr><td><b>M&#7845;t</b></td><td>Cu&#7889;i c&#249;ng</td><td>B&#7855;t bu&#7897;c ch&#7885;n 1 trong 6 l&#253; do m&#7845;t kh&#225;ch.</td></tr>
+</table>
+
+<h2>5. Danh s&#225;ch l&#253; do m&#7845;t kh&#225;ch</h2>
+<table>
+<tr><th>TT</th><th>L&#253; do</th><th>Gi&#7843;i th&#237;ch</th></tr>
+<tr><td style="text-align:center">1</td><td>Gi&#225; cao</td><td>KH cho r&#7857;ng gi&#225; v&#432;&#7907;t kh&#7843; n&#259;ng chi tr&#7843;.</td></tr>
+<tr><td style="text-align:center">2</td><td>Ch&#432;a s&#7861;n s&#224;ng / ch&#432;a c&#243; nhu c&#7847;u</td><td>KH n&#243;i "&#273;&#7875; suy ngh&#297;", kh&#244;ng ph&#7843;n h&#7891;i sau 3 l&#7847;n li&#234;n h&#7879;.</td></tr>
+<tr><td style="text-align:center">3</td><td>Ch&#7885;n &#273;&#7889;i th&#7911;</td><td>KH &#273;&#227; d&#249;ng s&#7843;n ph&#7849;m/d&#7883;ch v&#7909; c&#7911;a &#273;&#417;n v&#7883; kh&#225;c.</td></tr>
+<tr><td style="text-align:center">4</td><td>Kh&#244;ng h&#7907;p nhu c&#7847;u</td><td>S&#7843;n ph&#7849;m kh&#244;ng ph&#249; h&#7907;p y&#234;u c&#7847;u c&#7911;a KH.</td></tr>
+<tr><td style="text-align:center">5</td><td>M&#7845;t li&#234;n l&#7841;c</td><td>KH kh&#244;ng tr&#7843; l&#7901;i sau &#237;t nh&#7845;t 5 l&#7847;n li&#234;n h&#7879; trong 14 ng&#224;y.</td></tr>
+<tr><td style="text-align:center">6</td><td>Kh&#225;c</td><td>L&#253; do kh&#225;c - b&#7855;t bu&#7897;c &#273;i&#7873;n ghi ch&#250; b&#7893; sung.</td></tr>
+</table>
+
+<h2>6. Nh&#7919;ng &#273;i&#7873;u c&#7845;m l&#224;m</h2>
+<div class="note">
+<ol>
+<li><b>KH&#212;NG &#273;&#7875; KH &#7903; "M&#7899;i" qu&#225; 15 ph&#250;t</b> m&#224; kh&#244;ng li&#234;n h&#7879;.</li>
+<li><b>KH&#212;NG chuy&#7875;n "Chuy&#7875;n &#273;&#7893;i" m&#224; kh&#244;ng &#273;i&#7873;n Ng&#224;y chuy&#7875;n &#273;&#7893;i.</b></li>
+<li><b>KH&#212;NG chuy&#7875;n "M&#7845;t" m&#224; kh&#244;ng ch&#7885;n L&#253; do.</b></li>
+<li><b>KH&#212;NG nh&#7843;y tr&#7841;ng th&#225;i</b> (VD: "M&#7899;i" th&#7859;ng sang "Chuy&#7875;n &#273;&#7893;i").</li>
+<li><b>KH&#212;NG &#273;&#7875; KH "treo"</b> &#7903; 1 tr&#7841;ng th&#225;i qu&#225; th&#7901;i gian SLA.</li>
+</ol>
+</div>
+
+<h2>7. H&#7879; th&#7889;ng t&#7921; &#273;&#7897;ng x&#7917; l&#253;</h2>
+<div class="info">
+<ol>
+<li><b>"M&#7899;i" &#8594; "&#272;&#227; li&#234;n h&#7879;":</b> T&#7920; &#272;&#7896;NG khi NV g&#7917;i tin nh&#7855;n &#273;&#7847;u ti&#234;n.</li>
+<li><b>"&#272;&#227; li&#234;n h&#7879;"/"M&#7899;i" &#8594; "Quan t&#226;m":</b> T&#7920; &#272;&#7896;NG khi KH nh&#7855;n t&#7915; kh&#243;a mua/gi&#225;/t&#432; v&#7845;n. NV c&#7847;n ki&#7875;m tra l&#7841;i.</li>
+<li><b>&#272;i&#7875;m KH (Lead Score):</b> T&#7921; &#273;&#7897;ng t&#237;nh: +10/tin nh&#7855;n 7 ng&#224;y (t&#7889;i &#273;a +40), +20 n&#7871;u c&#243; l&#7883;ch h&#7865;n, +30 n&#7871;u "Quan t&#226;m", tr&#7915; &#273;i&#7875;m n&#7871;u kh&#244;ng ho&#7841;t &#273;&#7897;ng &gt;14 ng&#224;y.</li>
+</ol>
+</div>
+
+<h2>8. H&#432;&#7899;ng d&#7851;n thao t&#225;c</h2>
+<h3>8.1. T&#7915; M&#224;n H&#236;nh Chat</h3>
+<ol>
+<li>M&#7903; cu&#7897;c tr&#242; chuy&#7879;n v&#7899;i KH.</li>
+<li>Nh&#7845;n bi&#7875;u t&#432;&#7907;ng ng&#432;&#7901;i d&#249;ng (g&#243;c ph&#7843;i) &#273;&#7875; m&#7903; panel th&#244;ng tin.</li>
+<li>Ch&#7885;n tr&#7841;ng th&#225;i m&#7899;i t&#7915; &#244; "Tr&#7841;ng th&#225;i".</li>
+<li>Nh&#7845;n "L&#432;u th&#244;ng tin".</li>
+</ol>
+<h3>8.2. T&#7915; Danh S&#225;ch Kh&#225;ch H&#224;ng</h3>
+<ol>
+<li>V&#224;o menu "Kh&#225;ch h&#224;ng" &gt; nh&#7845;n v&#224;o d&#242;ng KH c&#7847;n c&#7853;p nh&#7853;t.</li>
+<li>Ch&#7885;n tr&#7841;ng th&#225;i m&#7899;i trong dialog chi ti&#7871;t.</li>
+<li>N&#7871;u "Chuy&#7875;n &#273;&#7893;i": &#273;i&#7873;n Ng&#224;y chuy&#7875;n &#273;&#7893;i. N&#7871;u "M&#7845;t": ch&#7885;n L&#253; do.</li>
+<li>Nh&#7845;n "L&#432;u".</li>
+</ol>
+
+<h2>9. Ch&#7881; s&#7889; qu&#7843;n l&#253; theo d&#245;i</h2>
+<table>
+<tr><th>Ch&#7881; s&#7889;</th><th>C&#244;ng th&#7913;c</th><th>M&#7909;c ti&#234;u</th></tr>
+<tr><td>T&#7881; l&#7879; ph&#7843;n h&#7891;i</td><td>(KH "&#272;&#227; li&#234;n h&#7879;" / T&#7893;ng KH "M&#7899;i") x 100%</td><td>100% trong 15 ph&#250;t</td></tr>
+<tr><td>T&#7881; l&#7879; quan t&#226;m</td><td>(KH "Quan t&#226;m" / KH "&#272;&#227; li&#234;n h&#7879;") x 100%</td><td>&ge; 40%</td></tr>
+<tr><td>T&#7881; l&#7879; chuy&#7875;n &#273;&#7893;i</td><td>(KH "Chuy&#7875;n &#273;&#7893;i" / KH "Quan t&#226;m") x 100%</td><td>&ge; 20%</td></tr>
+<tr><td>T&#7881; l&#7879; m&#7845;t kh&#225;ch</td><td>(KH "M&#7845;t" / T&#7893;ng KH &#273;&#227; x&#7917; l&#253;) x 100%</td><td>&le; 30%</td></tr>
+<tr><td>T&#7889;c &#273;&#7897; ch&#7889;t &#273;&#417;n</td><td>TB s&#7889; ng&#224;y t&#7915; "M&#7899;i" &#273;&#7871;n "Chuy&#7875;n &#273;&#7893;i"</td><td>&le; 7 ng&#224;y</td></tr>
+<tr><td>L&#253; do m&#7845;t KH ph&#7893; bi&#7871;n</td><td>Top 3 l&#253; do &#273;&#432;&#7907;c ch&#7885;n nhi&#7873;u nh&#7845;t</td><td>D&#249;ng &#273;&#7875; c&#7843;i ti&#7871;n</td></tr>
+</table>
+
+<h2>10. L&#432;u &#273;&#7891; chuy&#7875;n &#273;&#7893;i tr&#7841;ng th&#225;i</h2>
+<table>
+<tr><th>T&#7915;</th><th>Sang</th><th>Ai</th><th>&#272;i&#7873;u ki&#7879;n</th></tr>
+<tr><td>M&#7899;i</td><td>&#272;&#227; li&#234;n h&#7879;</td><td>T&#7921; &#273;&#7897;ng</td><td>NV g&#7917;i tin nh&#7855;n &#273;&#7847;u ti&#234;n.</td></tr>
+<tr><td>&#272;&#227; li&#234;n h&#7879;</td><td>Quan t&#226;m</td><td>T&#7921; &#273;&#7897;ng / Th&#7911; c&#244;ng</td><td>KH h&#7887;i gi&#225;/t&#432; v&#7845;n (t&#7921; &#273;&#7897;ng) ho&#7863;c NV &#273;&#225;nh gi&#225; (th&#7911; c&#244;ng).</td></tr>
+<tr><td>Quan t&#226;m</td><td>Chuy&#7875;n &#273;&#7893;i</td><td>Th&#7911; c&#244;ng</td><td>KH &#273;&#227; mua/k&#253; H&#272;. B&#7855;t bu&#7897;c &#273;i&#7873;n Ng&#224;y chuy&#7875;n &#273;&#7893;i.</td></tr>
+<tr><td>Quan t&#226;m</td><td>M&#7845;t</td><td>Th&#7911; c&#244;ng</td><td>KH t&#7915; ch&#7889;i/m&#7845;t li&#234;n l&#7841;c. B&#7855;t bu&#7897;c ch&#7885;n L&#253; do.</td></tr>
+<tr><td>&#272;&#227; li&#234;n h&#7879;</td><td>M&#7845;t</td><td>Th&#7911; c&#244;ng</td><td>KH kh&#244;ng ph&#7843;n h&#7891;i sau nhi&#7873;u l&#7847;n li&#234;n h&#7879;. B&#7855;t bu&#7897;c ch&#7885;n L&#253; do.</td></tr>
+<tr class="hl"><td>M&#7845;t</td><td>Quan t&#226;m</td><td>Th&#7911; c&#244;ng</td><td>KH quay l&#7841;i. H&#7879; th&#7889;ng t&#7921; x&#243;a l&#253; do m&#7845;t KH c&#361;.</td></tr>
+</table>
+
+<p style="text-align:center;margin-top:24pt;font-style:italic;color:#555">--- H&#7871;t t&#224;i li&#7879;u ---<br>M&#7885;i th&#7855;c m&#7855;c v&#7873; SOP n&#224;y, vui l&#242;ng li&#234;n h&#7879; Qu&#7843;n l&#253; tr&#7921;c ti&#7871;p.</p>
+
+</div>
+</body>
+</html>

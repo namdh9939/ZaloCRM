@@ -4,6 +4,7 @@ import { requireRole } from '../auth/role-middleware.js';
 import { requireZaloAccess } from '../zalo/zalo-access-middleware.js';
 import { getAiConfig, getAiUsage, updateAiConfig, generateAiOutput } from './ai-service.js';
 import { getAvailableProviders } from './provider-registry.js';
+import { scoreConversation, batchScoreConversations } from './service-scoring.js';
 import { logger } from '../../shared/utils/logger.js';
 import { prisma } from '../../shared/database/prisma-client.js';
 
@@ -112,4 +113,92 @@ export async function aiRoutes(app: FastifyInstance) {
       return sendHandledError(reply, err, 'Failed to analyze sentiment');
     }
   });
+
+  /**
+   * POST /api/v1/ai/service-score/:id
+   * Chấm Điểm Phục Vụ cho một conversation cụ thể.
+   * Quyền: owner | admin (chỉ quản lý mới được chấm/xem kết quả chi tiết).
+   */
+  app.post(
+    '/api/v1/ai/service-score/:id',
+    { preHandler: requireRole('owner', 'admin') },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { id } = request.params as { id: string };
+        // Kiểm tra conversation thuộc org
+        const conv = await prisma.conversation.findFirst({
+          where: { id, orgId: request.user!.orgId },
+          select: { id: true },
+        });
+        if (!conv) return reply.status(404).send({ error: 'Conversation not found' });
+
+        const result = await scoreConversation(id, request.user!.orgId);
+        return result;
+      } catch (err) {
+        logger.error('[ai] Service-score error:', err);
+        return sendHandledError(reply, err, 'Failed to score conversation');
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/ai/service-score/batch
+   * Chấm Điểm Phục Vụ hàng loạt cho org (dùng cronjob hoặc trigger thủ công).
+   * Body: { maxAgeHours?: number, activeWithinHours?: number, batchLimit?: number }
+   * Quyền: owner | admin.
+   */
+  app.post(
+    '/api/v1/ai/service-score/batch',
+    { preHandler: requireRole('owner', 'admin') },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const body = (request.body as Record<string, unknown>) ?? {};
+        const maxAgeHours = typeof body.maxAgeHours === 'number' ? body.maxAgeHours : 24;
+        const activeWithinHours = typeof body.activeWithinHours === 'number' ? body.activeWithinHours : 48;
+        const batchLimit = typeof body.batchLimit === 'number' ? Math.min(body.batchLimit, 200) : 50;
+
+        const result = await batchScoreConversations({
+          orgId: request.user!.orgId,
+          maxAgeHours,
+          activeWithinHours,
+          batchLimit,
+        });
+        return result;
+      } catch (err) {
+        logger.error('[ai] Service-score batch error:', err);
+        return sendHandledError(reply, err, 'Failed to run batch scoring');
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/ai/service-score/:id
+   * Lấy kết quả chấm điểm đã có của một conversation.
+   */
+  app.get(
+    '/api/v1/ai/service-score/:id',
+    { preHandler: requireRole('owner', 'admin') },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const conv = await prisma.conversation.findFirst({
+          where: { id, orgId: request.user!.orgId },
+          select: {
+            id: true,
+            serviceScore: true,
+            serviceLabel: true,
+            serviceScoreData: true,
+            serviceScoreAt: true,
+            managerActionRequired: true,
+            contact: { select: { id: true, fullName: true, crmName: true } },
+          },
+        });
+        if (!conv) return reply.status(404).send({ error: 'Conversation not found' });
+        return conv;
+      } catch (err) {
+        logger.error('[ai] Get service-score error:', err);
+        return reply.status(500).send({ error: 'Failed to fetch service score' });
+      }
+    },
+  );
 }

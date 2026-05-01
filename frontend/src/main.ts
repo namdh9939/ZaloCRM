@@ -11,9 +11,16 @@ app.use(router);
 app.use(vuetify);
 app.mount('#app');
 
-// TODO: Re-enable PWA when vite-plugin-pwa supports vite 8
-// if ('serviceWorker' in navigator) {
-//   import('virtual:pwa-register').then(({ registerSW }) => {
-//     registerSW({ immediate: true });
-//   });
-// }
+// Đăng ký Service Worker cho Web Push notifications
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
+    console.warn('[sw] Registration failed:', err);
+  });
+
+  // Điều hướng khi user click notification và app đang mở
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'PUSH_CLICKED' && event.data?.url) {
+      router.push(event.data.url);
+    }
+  });
+}

@@ -33,9 +33,13 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
         assignedUserId = '',
         threadType = '',
         zaloAccountId = '',
+        contactType = '',
       } = request.query as QueryParams;
 
       const where: any = { orgId: user.orgId, mergedInto: null };
+      // By default, only show customers; pass contactType=all to see everything
+      if (contactType && contactType !== 'all') where.contactType = contactType;
+      else if (!contactType) where.contactType = 'customer';
       if (source) where.source = source;
       if (status) where.status = status;
       if (assignedUserId) where.assignedUserId = assignedUserId;
@@ -132,6 +136,7 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
         orgId,
         status: { not: null },
         mergedInto: null,
+        contactType: 'customer', // only customers in pipeline funnel
         ...memberContactScope(user),
       };
 
@@ -276,6 +281,7 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
         email: body.email,
         avatarUrl: body.avatarUrl,
         source: body.source,
+        ...(body.contactType !== undefined ? { contactType: body.contactType } : {}),
         sourceDate: body.sourceDate ? new Date(body.sourceDate) : undefined,
         status: body.status,
         nextAppointment: body.nextAppointment ? new Date(body.nextAppointment) : undefined,
@@ -311,7 +317,7 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
         },
       });
 
-      if (existing.status !== updated.status) {
+      if (existing.status !== updated.status && updated.contactType === 'customer') {
         const org = await prisma.organization.findUnique({
           where: { id: user.orgId },
           select: { id: true, name: true },
@@ -339,6 +345,24 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
           fromStatus: existing.status,
           toStatus: body.status,
           userId: user.id,
+        });
+      }
+
+      // Fire contact_updated trigger — enables tag-based automation rules
+      // (e.g. tag "chot" → auto-set status to "converted")
+      if (updated.contactType === 'customer') {
+        void runAutomationRules({
+          trigger: 'contact_updated',
+          orgId: user.orgId,
+          contact: {
+            id: updated.id,
+            fullName: updated.fullName,
+            phone: updated.phone,
+            status: updated.status,
+            source: updated.source,
+            assignedUserId: updated.assignedUserId,
+            tags: Array.isArray(updated.tags) ? updated.tags as string[] : [],
+          },
         });
       }
 
@@ -549,6 +573,141 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     } catch (err) {
       logger.error('[contacts] Recompute trigger error:', err);
       return reply.status(500).send({ error: 'Failed to start recompute' });
+    }
+  });
+
+  // ── POST /api/v1/contacts/:id/suggested-status/apply ──────────────────────
+  // Apply AI-suggested status: copy suggestedStatus → status, log audit,
+  // trigger status_changed automation, clear suggestion fields.
+  app.post('/api/v1/contacts/:id/suggested-status/apply', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = request.user!;
+      const { id } = request.params as { id: string };
+
+      const existing = await prisma.contact.findFirst({
+        where: { id, orgId: user.orgId, ...memberContactScope(user) },
+        select: {
+          id: true, status: true, suggestedStatus: true, contactType: true,
+          fullName: true, phone: true, source: true, assignedUserId: true,
+        },
+      });
+      if (!existing) return reply.status(404).send({ error: 'Contact not found' });
+      if (!existing.suggestedStatus) {
+        return reply.status(400).send({ error: 'No pending suggestion to apply' });
+      }
+
+      const newStatus = existing.suggestedStatus;
+      const updated = await prisma.contact.update({
+        where: { id },
+        data: {
+          status: newStatus,
+          ...computeConvertedAtDelta(newStatus, existing.status, undefined),
+          suggestedStatus: null,
+          suggestedStatusReason: null,
+          suggestedStatusAt: null,
+        },
+      });
+
+      await logStatusChange({
+        contactId: id,
+        orgId: user.orgId,
+        fromStatus: existing.status,
+        toStatus: newStatus,
+        userId: user.id,
+      });
+
+      // Notify other tabs/users that the badge should disappear
+      const io = (app as any).io;
+      io?.emit('contact:suggestion-updated', {
+        contactId: id,
+        orgId: user.orgId,
+        suggestedStatus: null,
+        suggestedStatusReason: null,
+      });
+
+      if (existing.contactType === 'customer') {
+        const org = await prisma.organization.findUnique({
+          where: { id: user.orgId },
+          select: { id: true, name: true },
+        });
+        void runAutomationRules({
+          trigger: 'status_changed',
+          orgId: user.orgId,
+          org,
+          contact: {
+            id: updated.id,
+            fullName: updated.fullName,
+            phone: updated.phone,
+            status: updated.status,
+            source: updated.source,
+            assignedUserId: updated.assignedUserId,
+          },
+        });
+      }
+
+      return reply.send({ contact: updated });
+    } catch (err: any) {
+      logger.error('[contacts] Apply suggested status error:', err);
+      return reply.status(500).send({ error: 'Failed to apply suggestion' });
+    }
+  });
+
+  // ── POST /api/v1/contacts/:id/suggested-status/reject ─────────────────────
+  // Clear AI suggestion without changing the actual status.
+  app.post('/api/v1/contacts/:id/suggested-status/reject', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = request.user!;
+      const { id } = request.params as { id: string };
+
+      const existing = await prisma.contact.findFirst({
+        where: { id, orgId: user.orgId, ...memberContactScope(user) },
+        select: { id: true },
+      });
+      if (!existing) return reply.status(404).send({ error: 'Contact not found' });
+
+      await prisma.contact.update({
+        where: { id },
+        data: {
+          suggestedStatus: null,
+          suggestedStatusReason: null,
+          suggestedStatusAt: null,
+        },
+      });
+
+      const io = (app as any).io;
+      io?.emit('contact:suggestion-updated', {
+        contactId: id,
+        orgId: user.orgId,
+        suggestedStatus: null,
+        suggestedStatusReason: null,
+      });
+
+      return reply.send({ ok: true });
+    } catch (err) {
+      logger.error('[contacts] Reject suggested status error:', err);
+      return reply.status(500).send({ error: 'Failed to reject suggestion' });
+    }
+  });
+
+  // ── POST /api/v1/contacts/:id/suggested-status/detect ─────────────────────
+  // Manually trigger AI lead-status detection for this contact (bypass debounce).
+  app.post('/api/v1/contacts/:id/suggested-status/detect', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = request.user!;
+      const { id } = request.params as { id: string };
+
+      const existing = await prisma.contact.findFirst({
+        where: { id, orgId: user.orgId, ...memberContactScope(user) },
+        select: { id: true },
+      });
+      if (!existing) return reply.status(404).send({ error: 'Contact not found' });
+
+      const { detectLeadStatus } = await import('../ai/lead-status-detection.js');
+      const result = await detectLeadStatus(id, user.orgId);
+      return reply.send({ result });
+    } catch (err) {
+      logger.error('[contacts] Detect suggested status error:', err);
+      return reply.status(500).send({ error: 'Failed to detect status' });
     }
   });
 }

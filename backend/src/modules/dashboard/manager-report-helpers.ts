@@ -6,11 +6,12 @@
 import { prisma } from '../../shared/database/prisma-client.js';
 
 export const STATUS_LABELS: Record<string, string> = {
-  new: 'Mới',
-  contacted: 'Đã liên hệ',
-  interested: 'Quan tâm',
+  new: 'Lead mới',
+  consulting: 'Đang tư vấn',
+  quoting: 'Đang báo giá',
+  nurturing: 'Nuôi dưỡng',
   converted: 'Chuyển đổi',
-  lost: 'Mất',
+  lost: 'Thất bại',
 };
 
 export const LOST_REASON_LABELS: Record<string, string> = {
@@ -22,27 +23,34 @@ export const LOST_REASON_LABELS: Record<string, string> = {
   other: 'Khác',
 };
 
-// ── 1. Team conversion funnel per sale ────────────────────────────────────────
+// ── 1. Team conversion funnel — grouped by Zalo account via conversations ────
+// A contact is attributed to every Zalo account that has had a conversation with
+// them (overcounts contacts that are touched by multiple accounts — intentional).
 export async function buildTeamConversion(
   orgId: string, start: Date, end: Date, memberUid: string,
 ) {
   const rows = await prisma.$queryRaw<Array<{
-    user_id: string; full_name: string; role: string;
+    zalo_account_id: string; display_name: string | null;
     leads_received: bigint; leads_advised: bigint; leads_converted: bigint;
   }>>`
     SELECT
-      u.id AS user_id, u.full_name, u.role,
-      COUNT(c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) AS leads_received,
-      COUNT(c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
-                          AND c.status IN ('contacted','interested','converted','lost')) AS leads_advised,
-      COUNT(c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
+      za.id AS zalo_account_id,
+      za.display_name,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) AS leads_received,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
+                          AND c.status IN ('consulting','quoting','nurturing','converted','lost')) AS leads_advised,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
                           AND c.status = 'converted') AS leads_converted
-    FROM users u
-    LEFT JOIN contacts c ON c.assigned_user_id = u.id AND c.merged_into IS NULL AND c.is_group = false
-    WHERE u.org_id = ${orgId}
-      AND (${memberUid}::text = '' OR u.id = ${memberUid})
-    GROUP BY u.id, u.full_name, u.role
-    HAVING COUNT(c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) > 0
+    FROM zalo_accounts za
+    LEFT JOIN conversations conv ON conv.zalo_account_id = za.id
+    LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
+    WHERE za.org_id = ${orgId}
+      AND (${memberUid}::text = ''
+           OR za.owner_user_id = ${memberUid}
+           OR EXISTS (SELECT 1 FROM zalo_account_access zaa
+                      WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
+    GROUP BY za.id, za.display_name
+    HAVING COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) > 0
        OR ${memberUid}::text = ''
     ORDER BY leads_converted DESC, leads_received DESC
   `;
@@ -52,9 +60,8 @@ export async function buildTeamConversion(
     const advised = Number(r.leads_advised);
     const converted = Number(r.leads_converted);
     return {
-      userId: r.user_id,
-      fullName: r.full_name,
-      role: r.role,
+      zaloAccountId: r.zalo_account_id,
+      displayName: r.display_name ?? '(chưa đặt tên)',
       leadsReceived: received,
       leadsAdvised: advised,
       leadsConverted: converted,
@@ -89,8 +96,8 @@ export async function buildStageBottleneck(orgId: string, memberUid: string) {
       AND (${memberUid}::text = '' OR c.assigned_user_id = ${memberUid})
     GROUP BY c.status
     ORDER BY CASE c.status
-      WHEN 'new' THEN 1 WHEN 'contacted' THEN 2 WHEN 'interested' THEN 3
-      WHEN 'converted' THEN 4 WHEN 'lost' THEN 5 ELSE 99
+      WHEN 'new' THEN 1 WHEN 'consulting' THEN 2 WHEN 'quoting' THEN 3 WHEN 'nurturing' THEN 4
+      WHEN 'converted' THEN 5 WHEN 'lost' THEN 6 ELSE 99
     END
   `;
 
@@ -133,102 +140,115 @@ export async function buildLostReasons(
 }
 
 // ── 4. Interaction quality — reply time, dead chats, proactive rate ───────────
+// Grouped by Zalo account (the account the conversation is attached to).
 export async function buildInteractionQuality(
   orgId: string, start: Date, end: Date, memberUid: string,
 ) {
   const [replyTimes, deadRows, proactiveRows] = await Promise.all([
-    prisma.$queryRaw<Array<{ user_id: string; avg_minutes: number | null }>>`
+    prisma.$queryRaw<Array<{ zalo_account_id: string; avg_minutes: number | null }>>`
       WITH pairs AS (
         SELECT
-          c.assigned_user_id AS user_id,
+          conv.zalo_account_id AS zalo_account_id,
           m.sent_at AS contact_sent_at,
           LEAD(m.sent_at) OVER (PARTITION BY m.conversation_id ORDER BY m.sent_at) AS next_sent_at,
           LEAD(m.sender_type) OVER (PARTITION BY m.conversation_id ORDER BY m.sent_at) AS next_sender
         FROM messages m
         JOIN conversations conv ON conv.id = m.conversation_id
-        JOIN contacts c ON c.id = conv.contact_id
+        JOIN zalo_accounts za ON za.id = conv.zalo_account_id
+        LEFT JOIN contacts c ON c.id = conv.contact_id
         WHERE conv.org_id = ${orgId}
           AND m.sender_type = 'contact'
           AND m.sent_at >= ${start} AND m.sent_at < ${end}
-          AND c.is_group = false AND c.assigned_user_id IS NOT NULL
-          AND (${memberUid}::text = '' OR c.assigned_user_id = ${memberUid})
+          AND (c.is_group = false OR c.id IS NULL)
+          AND (${memberUid}::text = ''
+               OR za.owner_user_id = ${memberUid}
+               OR EXISTS (SELECT 1 FROM zalo_account_access zaa
+                          WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
       )
-      SELECT user_id, AVG(EXTRACT(EPOCH FROM (next_sent_at - contact_sent_at)) / 60) AS avg_minutes
+      SELECT zalo_account_id, AVG(EXTRACT(EPOCH FROM (next_sent_at - contact_sent_at)) / 60) AS avg_minutes
       FROM pairs
       WHERE next_sender = 'self' AND next_sent_at IS NOT NULL
-      GROUP BY user_id
+      GROUP BY zalo_account_id
     `,
-    prisma.$queryRaw<Array<{ user_id: string; dead_count: bigint }>>`
-      SELECT c.assigned_user_id AS user_id, COUNT(*)::bigint AS dead_count
+    prisma.$queryRaw<Array<{ zalo_account_id: string; dead_count: bigint }>>`
+      SELECT conv.zalo_account_id AS zalo_account_id, COUNT(*)::bigint AS dead_count
       FROM conversations conv
-      JOIN contacts c ON c.id = conv.contact_id
+      JOIN zalo_accounts za ON za.id = conv.zalo_account_id
+      LEFT JOIN contacts c ON c.id = conv.contact_id
       WHERE conv.org_id = ${orgId}
         AND conv.is_replied = false
         AND conv.last_message_at < NOW() - INTERVAL '24 hours'
-        AND c.is_group = false AND c.assigned_user_id IS NOT NULL
-        AND (${memberUid}::text = '' OR c.assigned_user_id = ${memberUid})
-      GROUP BY c.assigned_user_id
+        AND (c.is_group = false OR c.id IS NULL)
+        AND (${memberUid}::text = ''
+             OR za.owner_user_id = ${memberUid}
+             OR EXISTS (SELECT 1 FROM zalo_account_access zaa
+                        WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
+      GROUP BY conv.zalo_account_id
     `,
-    prisma.$queryRaw<Array<{ user_id: string; total_self: bigint; proactive_self: bigint }>>`
+    prisma.$queryRaw<Array<{ zalo_account_id: string; total_self: bigint; proactive_self: bigint }>>`
       WITH sale_msgs AS (
         SELECT
-          c.assigned_user_id AS user_id,
+          conv.zalo_account_id AS zalo_account_id,
           LAG(m.sender_type) OVER (PARTITION BY m.conversation_id ORDER BY m.sent_at) AS prev_sender
         FROM messages m
         JOIN conversations conv ON conv.id = m.conversation_id
-        JOIN contacts c ON c.id = conv.contact_id
+        JOIN zalo_accounts za ON za.id = conv.zalo_account_id
+        LEFT JOIN contacts c ON c.id = conv.contact_id
         WHERE conv.org_id = ${orgId}
           AND m.sender_type = 'self'
           AND m.sent_at >= ${start} AND m.sent_at < ${end}
-          AND c.is_group = false AND c.assigned_user_id IS NOT NULL
-          AND (${memberUid}::text = '' OR c.assigned_user_id = ${memberUid})
+          AND (c.is_group = false OR c.id IS NULL)
+          AND (${memberUid}::text = ''
+               OR za.owner_user_id = ${memberUid}
+               OR EXISTS (SELECT 1 FROM zalo_account_access zaa
+                          WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
       )
-      SELECT user_id,
+      SELECT zalo_account_id,
              COUNT(*)::bigint AS total_self,
              COUNT(*) FILTER (WHERE prev_sender = 'self')::bigint AS proactive_self
-      FROM sale_msgs GROUP BY user_id
+      FROM sale_msgs GROUP BY zalo_account_id
     `,
   ]);
 
-  const userIds = Array.from(new Set([
-    ...replyTimes.map((r) => r.user_id),
-    ...deadRows.map((r) => r.user_id),
-    ...proactiveRows.map((r) => r.user_id),
+  const accountIds = Array.from(new Set([
+    ...replyTimes.map((r) => r.zalo_account_id),
+    ...deadRows.map((r) => r.zalo_account_id),
+    ...proactiveRows.map((r) => r.zalo_account_id),
   ].filter(Boolean)));
-  const users = userIds.length
-    ? await prisma.user.findMany({
-        where: { id: { in: userIds }, orgId },
-        select: { id: true, fullName: true },
+  const accounts = accountIds.length
+    ? await prisma.zaloAccount.findMany({
+        where: { id: { in: accountIds }, orgId },
+        select: { id: true, displayName: true },
       })
     : [];
 
-  const userMap = new Map<string, {
-    userId: string; fullName: string;
+  const accountMap = new Map<string, {
+    zaloAccountId: string; displayName: string;
     avgReplyMinutes: number | null; deadConversations: number; proactiveRate: number | null;
   }>();
-  for (const u of users) {
-    userMap.set(u.id, {
-      userId: u.id, fullName: u.fullName,
+  for (const a of accounts) {
+    accountMap.set(a.id, {
+      zaloAccountId: a.id, displayName: a.displayName ?? '(chưa đặt tên)',
       avgReplyMinutes: null, deadConversations: 0, proactiveRate: null,
     });
   }
   for (const r of replyTimes) {
-    const e = userMap.get(r.user_id);
+    const e = accountMap.get(r.zalo_account_id);
     if (e && r.avg_minutes !== null) e.avgReplyMinutes = Math.round(Number(r.avg_minutes));
   }
   for (const r of deadRows) {
-    const e = userMap.get(r.user_id);
+    const e = accountMap.get(r.zalo_account_id);
     if (e) e.deadConversations = Number(r.dead_count);
   }
   for (const r of proactiveRows) {
-    const e = userMap.get(r.user_id);
+    const e = accountMap.get(r.zalo_account_id);
     if (e) {
       const total = Number(r.total_self);
       const proactive = Number(r.proactive_self);
       e.proactiveRate = total === 0 ? null : Math.round((proactive / total) * 100);
     }
   }
-  return Array.from(userMap.values());
+  return Array.from(accountMap.values());
 }
 
 // ── 5. Weekly trend (for monthly report) — 1 data point per week ──────────────

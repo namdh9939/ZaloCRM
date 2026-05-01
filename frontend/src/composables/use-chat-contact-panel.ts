@@ -25,9 +25,9 @@ export function useChatContactPanel(
     fullName: '',
     crmName: '',
     phone: '',
-    email: '',
     source: null as string | null,
     status: null as string | null,
+    contactType: 'customer',
     convertedDate: '',
     firstContactDate: '',
     tags: [] as string[],
@@ -38,9 +38,9 @@ export function useChatContactPanel(
     form.fullName = c.fullName ?? '';
     form.crmName = c.crmName ?? '';
     form.phone = c.phone ?? '';
-    form.email = c.email ?? '';
     form.source = c.source ?? null;
     form.status = c.status ?? null;
+    form.contactType = (c as any).contactType ?? 'customer';
     form.convertedDate = c.convertedAt
       ? new Date(c.convertedAt).toISOString().split('T')[0]
       : '';
@@ -88,9 +88,9 @@ export function useChatContactPanel(
       fullName: form.fullName || null,
       crmName: form.crmName || null,
       phone: form.phone || null,
-      email: form.email || null,
       source: form.source || null,
       status: form.status || null,
+      contactType: form.contactType || 'customer',
       convertedAt: form.status === 'converted' && form.convertedDate
         ? new Date(form.convertedDate + 'T00:00:00').toISOString()
         : null,

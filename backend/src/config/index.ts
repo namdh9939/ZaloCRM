@@ -45,5 +45,10 @@ export const config = {
   kimiAuthToken: process.env.KIMI_AUTH_TOKEN || '',
   kimiDefaultMoonshotV1Model: process.env.KIMI_DEFAULT_MOONSHOT_V1_MODEL || '',
 
+  /* --- Web Push (VAPID) --- */
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '',
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || '',
+  vapidEmail: process.env.VAPID_EMAIL || 'mailto:admin@nhacuaminh.vn',
+
   isProduction: process.env.NODE_ENV === 'production',
 };

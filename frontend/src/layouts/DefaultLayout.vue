@@ -35,6 +35,26 @@
       </div>
 
       <span class="text-body-2 mr-3" v-if="authStore.user">{{ authStore.user.fullName }}</span>
+
+      <!-- Nút Bật/Tắt Web Push Notification -->
+      <v-tooltip :text="pushTooltip" location="bottom">
+        <template #activator="{ props: tipProps }">
+          <v-btn
+            v-bind="tipProps"
+            icon
+            variant="text"
+            :loading="pushStatus === 'loading'"
+            :color="pushStatus === 'enabled' ? 'success' : pushStatus === 'denied' ? 'error' : undefined"
+            class="mr-1"
+            @click="togglePush"
+          >
+            <v-icon>
+              {{ pushStatus === 'enabled' ? 'mdi-bell-ring' : pushStatus === 'denied' ? 'mdi-bell-cancel' : 'mdi-bell-off-outline' }}
+            </v-icon>
+          </v-btn>
+        </template>
+      </v-tooltip>
+
       <NotificationBell />
       <v-btn icon variant="text" @click="toggleTheme">
         <v-icon>{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
@@ -82,16 +102,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useTheme } from 'vuetify';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import NotificationBell from '@/components/NotificationBell.vue';
 import GlobalSearch from '@/components/GlobalSearch.vue';
+import { usePushNotifications } from '@/composables/use-push-notifications';
 
 const theme = useTheme();
 const authStore = useAuthStore();
 const router = useRouter();
+
+const { status: pushStatus, enable: enablePush, disable: disablePush } = usePushNotifications();
+
+const pushTooltip = computed(() => {
+  const map: Record<string, string> = {
+    enabled: 'Thông báo đang bật — nhấn để tắt',
+    disabled: 'Bật thông báo tin nhắn mới',
+    denied: 'Trình duyệt đang chặn — vào Settings để cấp quyền',
+    unsupported: 'Trình duyệt không hỗ trợ thông báo',
+    loading: 'Đang xử lý...',
+  };
+  return map[pushStatus.value] ?? 'Thông báo';
+});
+
+async function togglePush() {
+  if (pushStatus.value === 'enabled') {
+    await disablePush();
+  } else if (pushStatus.value === 'disabled') {
+    await enablePush();
+  }
+}
 
 const drawer = ref(true);
 const rail = ref(false);

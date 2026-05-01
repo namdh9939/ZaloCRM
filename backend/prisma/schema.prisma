@@ -30,6 +30,7 @@ model Organization {
   aiConfig      AiConfig?
   aiSuggestions AiSuggestion[]
   statusHistory ContactStatusHistory[]
+  pushSubscriptions PushSubscription[]
 
   @@map("organizations")
 }
@@ -70,6 +71,7 @@ model User {
   activityLogs     ActivityLog[]
   messageTemplates MessageTemplate[]
   statusChanges    ContactStatusHistory[]
+  pushSubscriptions PushSubscription[]
 
   @@map("users")
 }
@@ -135,8 +137,19 @@ model Contact {
   tags             Json      @default("[]")
   metadata         Json      @default("{}")
   isGroup          Boolean   @default(false) @map("is_group")
+  contactType      String    @default("customer") @map("contact_type") // customer | internal | partner — only 'customer' appears in pipeline/funnel/reports
   globalGroupId    String?   @map("global_group_id") // shared ID across Zalo accounts for the same real-world group
   leadScore        Int       @default(0) @map("lead_score")
+  serviceScore     Int?      @map("service_score")   // cache từ conversation gần nhất
+  serviceLabel     String?   @map("service_label")   // success | info | warning | error
+
+  // AI-suggested status transition — written by lead-status-detection on every
+  // new message. UI shows a badge so staff can Apply (commit to .status) or
+  // Reject (clear). Never suggests 'converted' — that requires manual action.
+  suggestedStatus       String?   @map("suggested_status")        // consulting | quoting | nurturing | lost
+  suggestedStatusReason String?   @map("suggested_status_reason") // AI justification (1-2 sentences)
+  suggestedStatusAt     DateTime? @map("suggested_status_at")
+
   lastActivity     DateTime? @map("last_activity")
   mergedInto       String?   @map("merged_into")
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -193,6 +206,14 @@ model Conversation {
   tab              String    @default("main") @map("tab") // main, other
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  // ── Điểm Phục Vụ (Service Quality Score) ─────────────────────────────────
+  // AI chấm điểm thái độ nhân viên trong hội thoại này (thang 0-100).
+  serviceScore          Int?      @map("service_score")
+  serviceLabel          String?   @map("service_label")   // success | info | warning | error
+  serviceScoreData      Json?     @map("service_score_data") // full JSON từ AI
+  serviceScoreAt        DateTime? @map("service_score_at")   // lần chấm gần nhất
+  managerActionRequired Boolean   @default(false) @map("manager_action_required")
+
   org           Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   zaloAccount   ZaloAccount   @relation(fields: [zaloAccountId], references: [id], onDelete: Cascade)
   contact       Contact?      @relation(fields: [contactId], references: [id])
@@ -203,6 +224,7 @@ model Conversation {
   @@index([orgId, zaloAccountId, isReplied, lastMessageAt])
   @@index([orgId, zaloAccountId, lastMessageAt])
   @@index([orgId, tab, lastMessageAt])
+  @@index([orgId, serviceLabel, managerActionRequired])
   @@map("conversations")
 }
 
@@ -440,4 +462,22 @@ model AiSuggestion {
   @@index([conversationId, createdAt])
   @@index([orgId, type, createdAt])
   @@map("ai_suggestions")
+}
+
+// Web Push subscription — một user có thể có nhiều subscription (nhiều thiết bị/trình duyệt)
+model PushSubscription {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  endpoint  String   @unique          // URL endpoint của browser
+  p256dh    String   @map("p256dh")   // public key
+  auth      String                    // auth secret
+  userAgent String?  @map("user_agent") // ghi nhớ thiết bị để hiển thị cho user
+  createdAt DateTime @default(now())  @map("created_at")
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, userId])
+  @@map("push_subscriptions")
 }

@@ -10,6 +10,16 @@
       <v-divider />
 
       <v-card-text>
+        <!-- AI suggested status badge — shown when AI has a pending suggestion -->
+        <SuggestedStatusBadge
+          v-if="props.contact?.id && props.contact?.suggestedStatus"
+          :contact-id="props.contact.id"
+          :suggested-status="props.contact.suggestedStatus"
+          :suggested-status-reason="props.contact.suggestedStatusReason"
+          @applied="onSuggestionApplied"
+          @rejected="onSuggestionRejected"
+        />
+
         <v-row dense>
           <!-- CRM name (real name) -->
           <v-col cols="12" sm="6">
@@ -26,10 +36,7 @@
             <v-text-field v-model="form.phone" label="Số điện thoại" />
           </v-col>
 
-          <!-- Email -->
-          <v-col cols="12" sm="6">
-            <v-text-field v-model="form.email" label="Email" type="email" />
-          </v-col>
+
 
           <!-- Source — use group-specific sources when contact is a Zalo group -->
           <v-col cols="12" sm="6">
@@ -114,6 +121,23 @@
             />
           </v-col>
 
+          <!-- Contact Type -->
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.contactType"
+              :items="[
+                { title: 'Khách hàng', value: 'customer' },
+                { title: 'Nội bộ', value: 'internal' },
+                { title: 'Đối tác', value: 'partner' }
+              ]"
+              label="Loại liên hệ (Ảnh hưởng đến phễu)"
+              color="primary"
+              hint="Nội bộ và Đối tác sẽ không được tính vào phễu chuyển đổi"
+              persistent-hint
+              hide-details="auto"
+            />
+          </v-col>
+
           <!-- Notes -->
           <v-col cols="12">
             <v-textarea
@@ -151,6 +175,7 @@ import { ref, watch, computed, onMounted } from 'vue';
 import type { Contact } from '@/composables/use-contacts';
 import { SOURCE_OPTIONS, GROUP_SOURCE_OPTIONS, STATUS_OPTIONS, LOST_REASON_OPTIONS, useContacts } from '@/composables/use-contacts';
 import DatePicker from '@/components/DatePicker.vue';
+import SuggestedStatusBadge from '@/components/contacts/SuggestedStatusBadge.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useUsers } from '@/composables/use-users';
 
@@ -192,6 +217,26 @@ const emit = defineEmits<{
 
 const { saving, deleting, createContact, updateContact, deleteContact } = useContacts();
 
+function onSuggestionApplied(newStatus: string) {
+  // Server đã commit status — đồng bộ form + emit để parent refresh list.
+  form.value.status = newStatus;
+  if (props.contact) {
+    props.contact.status = newStatus;
+    props.contact.suggestedStatus = null;
+    props.contact.suggestedStatusReason = null;
+    props.contact.suggestedStatusAt = null;
+    emit('saved', props.contact);
+  }
+}
+
+function onSuggestionRejected() {
+  if (props.contact) {
+    props.contact.suggestedStatus = null;
+    props.contact.suggestedStatusReason = null;
+    props.contact.suggestedStatusAt = null;
+  }
+}
+
 const show = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
@@ -213,6 +258,7 @@ interface FormState {
   assignedUserId: string | null;
   lostReason: string;
   lostNote: string;
+  contactType: string;
 }
 
 const form = ref<FormState>(emptyForm());
@@ -232,6 +278,7 @@ function emptyForm(): FormState {
     assignedUserId: null,
     lostReason: '',
     lostNote: '',
+    contactType: 'customer',
   };
 }
 
@@ -255,6 +302,7 @@ watch(() => props.contact, (c) => {
       assignedUserId: c.assignedUserId ?? null,
       lostReason: c.lostReason ?? '',
       lostNote: c.lostNote ?? '',
+      contactType: (c as any).contactType ?? 'customer',
     };
   } else {
     form.value = emptyForm();
@@ -292,6 +340,8 @@ async function onSave() {
     (payload as Record<string, any>).lostReason = form.value.lostReason || null;
     (payload as Record<string, any>).lostNote = form.value.lostNote || null;
   }
+  // Contact Type
+  (payload as Record<string, any>).contactType = form.value.contactType;
 
   let result: Contact | null;
   if (isNew.value) {

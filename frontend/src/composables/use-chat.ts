@@ -283,6 +283,22 @@ export function useChat() {
       const msg = messages.value.find(m => m.zaloMsgId === data.msgId);
       if (msg) msg.isDeleted = true;
     });
+
+    socket.on('contact:suggestion-updated', (data: {
+      contactId: string;
+      suggestedStatus: string | null;
+      suggestedStatusReason: string | null;
+    }) => {
+      // Update suggestion on any conversation whose contact matches —
+      // ChatContactPanel will reactively re-render the badge.
+      for (const conv of conversations.value) {
+        if (conv.contact?.id === data.contactId) {
+          conv.contact.suggestedStatus = data.suggestedStatus;
+          conv.contact.suggestedStatusReason = data.suggestedStatusReason;
+          conv.contact.suggestedStatusAt = data.suggestedStatus ? new Date().toISOString() : null;
+        }
+      }
+    });
   }
 
   function destroySocket() {

@@ -7,6 +7,7 @@ import { logger } from '../../shared/utils/logger.js';
 import { randomUUID } from 'node:crypto';
 import { emitWebhook } from '../api/webhook-service.js';
 import { runAutomationRules } from '../automation/automation-service.js';
+import { scheduleLeadStatusDetection } from '../ai/lead-status-detection.js';
 
 export interface IncomingMessage {
   accountId: string;
@@ -161,9 +162,19 @@ export async function handleIncomingMessage(
       const contact = contactId
         ? await prisma.contact.findUnique({
             where: { id: contactId },
-            select: { id: true, fullName: true, crmName: true, phone: true, status: true, source: true, assignedUserId: true },
+            select: { id: true, fullName: true, crmName: true, phone: true, status: true, source: true, assignedUserId: true, contactType: true },
           })
         : null;
+
+      // Skip automation for non-customer contacts (internal staff, partners)
+      if (contact && contact.contactType !== 'customer') {
+        return {
+          message,
+          conversationId: conversation.id,
+          orgId: account.orgId,
+          contactId,
+        };
+      }
       const conversationDetails = await prisma.conversation.findUnique({
         where: { id: conversation.id },
         select: { id: true, unreadCount: true, externalThreadId: true, threadType: true, zaloAccountId: true },
@@ -185,6 +196,12 @@ export async function handleIncomingMessage(
           : null,
         message: { id: message.id, content: message.content, contentType: message.contentType, senderType: message.senderType },
       });
+    }
+
+    // Schedule AI lead-status detection (debounced 30s per contact).
+    // Skip backfill (syncing old messages) and group chats (no individual lead).
+    if (contactId && !msg.isBackfill && msg.threadType === 'user') {
+      scheduleLeadStatusDetection(contactId, account.orgId);
     }
 
     return {

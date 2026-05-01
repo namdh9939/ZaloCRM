@@ -26,12 +26,20 @@ export interface Contact {
   createdAt?: string;
   firstContactDate?: string | null;
   leadScore: number;
+  serviceScore?: number | null;
+  serviceLabel?: 'success' | 'info' | 'warning' | 'error' | null;
   lastActivity: string | null;
   mergedInto: string | null;
   metadata?: Record<string, unknown> | null;
   isGroup?: boolean;
   lostReason?: string | null;
   lostNote?: string | null;
+  contactType?: string;
+  // AI-suggested status (consulting | quoting | nurturing | lost). Null when no
+  // pending suggestion. UI shows a badge with Apply/Reject buttons.
+  suggestedStatus?: string | null;
+  suggestedStatusReason?: string | null;
+  suggestedStatusAt?: string | null;
 }
 
 export interface DuplicateGroup {
@@ -76,11 +84,12 @@ export const LOST_REASON_OPTIONS = [
 ];
 
 export const STATUS_OPTIONS = [
-  { text: 'Mới', value: 'new' },
-  { text: 'Đã liên hệ', value: 'contacted' },
-  { text: 'Quan tâm', value: 'interested' },
+  { text: 'Lead mới', value: 'new' },
+  { text: 'Đang tư vấn', value: 'consulting' },
+  { text: 'Đang báo giá', value: 'quoting' },
+  { text: 'Nuôi dưỡng', value: 'nurturing' },
   { text: 'Chuyển đổi', value: 'converted' },
-  { text: 'Mất', value: 'lost' },
+  { text: 'Thất bại', value: 'lost' },
 ];
 
 export function useContacts() {
@@ -205,6 +214,36 @@ export function useContacts() {
     fetchContacts();
   }
 
+  async function applySuggestedStatus(contactId: string): Promise<Contact | null> {
+    try {
+      const res = await api.post(`/contacts/${contactId}/suggested-status/apply`);
+      return res.data.contact ?? null;
+    } catch (err) {
+      console.error('Failed to apply suggested status:', err);
+      return null;
+    }
+  }
+
+  async function rejectSuggestedStatus(contactId: string): Promise<boolean> {
+    try {
+      await api.post(`/contacts/${contactId}/suggested-status/reject`);
+      return true;
+    } catch (err) {
+      console.error('Failed to reject suggested status:', err);
+      return false;
+    }
+  }
+
+  async function detectSuggestedStatus(contactId: string): Promise<{ suggestedStatus: string | null; statusReason: string } | null> {
+    try {
+      const res = await api.post(`/contacts/${contactId}/suggested-status/detect`);
+      return res.data.result ?? null;
+    } catch (err) {
+      console.error('Failed to detect suggested status:', err);
+      return null;
+    }
+  }
+
   return {
     contacts, total, loading, saving, deleting,
     filters, pagination,
@@ -212,6 +251,7 @@ export function useContacts() {
     createContact, updateContact, deleteContact,
     assignContact, bulkAssignContacts,
     resetFilters,
+    applySuggestedStatus, rejectSuggestedStatus, detectSuggestedStatus,
   };
 }
 
