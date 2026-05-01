@@ -321,10 +321,11 @@ async function onSave() {
     email: form.value.email || null,
     source: form.value.source || null,
     status: form.value.status || null,
-    // Only send convertedAt when status is 'converted' — backend clears it otherwise
-    convertedAt: form.value.status === 'converted' && form.value.convertedDate
-      ? new Date(form.value.convertedDate + 'T00:00:00').toISOString()
-      : null,
+    // Only send convertedAt when status is 'converted'. 
+    // If status is 'converted' but convertedDate is empty, we OMIT it so backend defaults to now().
+    ...(form.value.status === 'converted'
+      ? (form.value.convertedDate ? { convertedAt: new Date(form.value.convertedDate + 'T00:00:00').toISOString() } : {})
+      : { convertedAt: null }),
     firstContactDate: form.value.firstContactDate
       ? new Date(form.value.firstContactDate + 'T00:00:00').toISOString()
       : null,
