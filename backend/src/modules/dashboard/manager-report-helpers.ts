@@ -37,13 +37,41 @@ export async function buildTeamConversion(
     SELECT
       za.id AS zalo_account_id,
       za.display_name,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status IS NOT NULL) AS leads_received,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'new') AS leads_new,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'consulting') AS leads_consulting,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'quoting') AS leads_quoting,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'nurturing') AS leads_nurturing,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'converted') AS leads_converted,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'lost') AS leads_lost
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status IS NOT NULL AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_received,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'new' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_new,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'consulting' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_consulting,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'quoting' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_quoting,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'nurturing' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_nurturing,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'converted' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_converted,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'lost' AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) AS leads_lost
     FROM zalo_accounts za
     LEFT JOIN conversations conv ON conv.zalo_account_id = za.id AND conv.thread_type = 'user'
     LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
@@ -53,7 +81,11 @@ export async function buildTeamConversion(
            OR EXISTS (SELECT 1 FROM zalo_account_access zaa
                       WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
     GROUP BY za.id, za.display_name
-    HAVING COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status IS NOT NULL) > 0
+    HAVING COUNT(DISTINCT c.id) FILTER (WHERE c.status IS NOT NULL AND (
+        c.created_at >= ${start} AND c.created_at < ${end}
+        OR conv.last_message_at >= ${start} AND conv.last_message_at < ${end}
+        OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
+      )) > 0
        OR ${memberUid}::text = ''
     ORDER BY leads_converted DESC, leads_received DESC
   `;
