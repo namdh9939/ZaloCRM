@@ -64,12 +64,21 @@
           <thead>
             <tr>
               <th>Tài khoản Zalo</th>
-              <th class="text-center" style="min-width: 90px;">Lead mới</th>
-              <th class="text-center" style="min-width: 100px;">Đang tư vấn</th>
-              <th class="text-center" style="min-width: 110px;">Đang báo giá</th>
-              <th class="text-center" style="min-width: 100px;">Nuôi dưỡng</th>
+              <th class="text-center" style="min-width: 110px;">Tổng Lead</th>
+              
+              <!-- Cột cho Báo cáo Tuần (Gộp) -->
+              <th v-if="tab === 'weekly'" class="text-center" style="min-width: 100px;">Đã tư vấn</th>
+              
+              <!-- Các cột cho Báo cáo Tháng (Chi tiết) -->
+              <th v-if="tab === 'monthly'" class="text-center" style="min-width: 90px;">Lead mới</th>
+              <th v-if="tab === 'monthly'" class="text-center" style="min-width: 100px;">Đang tư vấn</th>
+              <th v-if="tab === 'monthly'" class="text-center" style="min-width: 110px;">Đang báo giá</th>
+              <th v-if="tab === 'monthly'" class="text-center" style="min-width: 100px;">Nuôi dưỡng</th>
+              
               <th class="text-center" style="min-width: 90px;">Chốt đơn</th>
-              <th class="text-center" style="min-width: 80px;">Thất bại</th>
+              
+              <th v-if="tab === 'monthly'" class="text-center" style="min-width: 80px;">Thất bại</th>
+              
               <th class="text-center" style="min-width: 120px;">Tỉ lệ tiếp cận</th>
               <th class="text-center" style="min-width: 120px;">Tỉ lệ chốt</th>
             </tr>
@@ -77,12 +86,21 @@
           <tbody>
             <tr v-for="row in teamConversion" :key="row.zaloAccountId">
               <td>{{ row.displayName }}</td>
-              <td class="text-center text-grey font-weight-medium">{{ row.leadsNew }}</td>
-              <td class="text-center" style="color: #2196F3">{{ row.leadsConsulting }}</td>
-              <td class="text-center" style="color: #FF9800">{{ row.leadsQuoting }}</td>
-              <td class="text-center" style="color: #9C27B0">{{ row.leadsNurturing }}</td>
+              <td class="text-center font-weight-bold">{{ row.leadsReceived }}</td>
+              
+              <!-- Dữ liệu cho Báo cáo Tuần (Gộp) -->
+              <td v-if="tab === 'weekly'" class="text-center text-info font-weight-medium">{{ row.leadsReceived - row.leadsNew }}</td>
+
+              <!-- Dữ liệu cho Báo cáo Tháng (Chi tiết) -->
+              <td v-if="tab === 'monthly'" class="text-center text-grey font-weight-medium">{{ row.leadsNew }}</td>
+              <td v-if="tab === 'monthly'" class="text-center" style="color: #2196F3">{{ row.leadsConsulting }}</td>
+              <td v-if="tab === 'monthly'" class="text-center" style="color: #FF9800">{{ row.leadsQuoting }}</td>
+              <td v-if="tab === 'monthly'" class="text-center" style="color: #9C27B0">{{ row.leadsNurturing }}</td>
+              
               <td class="text-center text-success font-weight-bold">{{ row.leadsConverted }}</td>
-              <td class="text-center text-error">{{ row.leadsLost }}</td>
+              
+              <td v-if="tab === 'monthly'" class="text-center text-error">{{ row.leadsLost }}</td>
+
               <td class="text-center">
                 <span v-if="row.reachRate === null" class="text-grey">—</span>
                 <span v-else :style="{ color: rateColor(row.reachRate, 50, 80) }" class="font-weight-medium">
@@ -98,7 +116,7 @@
               </td>
             </tr>
             <tr v-if="!teamConversion.length">
-              <td colspan="9" class="text-center text-grey py-4">Chưa ghi nhận lead mới trong kỳ báo cáo</td>
+              <td :colspan="tab === 'monthly' ? 10 : 6" class="text-center text-grey py-4">Chưa ghi nhận lead mới trong kỳ báo cáo</td>
             </tr>
           </tbody>
         </v-table>
