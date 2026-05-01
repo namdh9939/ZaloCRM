@@ -120,8 +120,8 @@
               </div>
             </div>
             <!-- Service score badge -->
-            <div v-if="contact.serviceScore !== null" class="ml-2">
-              <v-chip :color="contact.serviceLabel" size="x-small" variant="tonal" class="font-weight-bold">
+            <div v-if="contact.serviceScore !== null && contact.serviceScore !== undefined" class="ml-2">
+              <v-chip :color="contact.serviceLabel || undefined" size="x-small" variant="tonal" class="font-weight-bold">
                 {{ contact.serviceScore }}
               </v-chip>
             </div>
@@ -189,7 +189,7 @@ import { useZaloAccounts } from '@/composables/use-zalo-accounts';
 import { formatDate } from '@/utils/date-format';
 import type { Contact } from '@/composables/use-contacts';
 
-const { contacts, total, loading, filters, fetchContacts } = useContacts();
+const { contacts, loading, filters, fetchContacts } = useContacts();
 const { duplicateTotal, fetchDuplicateGroups: fetchDuplicates } = useContactIntelligence();
 const { accounts } = useZaloAccounts();
 
