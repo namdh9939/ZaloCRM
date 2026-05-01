@@ -332,6 +332,24 @@ async function upsertContact(msg: IncomingMessage, orgId: string): Promise<strin
   if (Object.keys(updates).length > 0) {
     await prisma.contact.update({ where: { id: existing.id }, data: updates });
   }
+
+  // 1. Lead activation logic: Only mark as 'new' if they message on/after 2026-05-01
+  // and they are NOT a group. This treats them as a fresh lead for the new period.
+  const resetThreshold = new Date('2026-05-01T00:01:00Z');
+  const msgTime = new Date(msg.timestamp);
+
+  if (msg.threadType === 'user' && msgTime >= resetThreshold) {
+    // If contact was inactive before today or has no status, reset to 'new'
+    if (!existing.status || (existing.lastActivity && existing.lastActivity < resetThreshold)) {
+      if (existing.status !== 'converted') {
+        await prisma.contact.update({
+          where: { id: existing.id },
+          data: { status: 'new' },
+        });
+      }
+    }
+  }
+
   return existing.id;
 }
 
