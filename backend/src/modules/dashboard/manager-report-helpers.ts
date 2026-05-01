@@ -73,7 +73,7 @@ export async function buildTeamConversion(
         OR EXISTS (SELECT 1 FROM contact_status_history csh WHERE csh.contact_id = c.id AND csh.changed_at >= ${start} AND csh.changed_at < ${end})
       )) AS leads_lost
     FROM zalo_accounts za
-    LEFT JOIN conversations conv ON conv.zalo_account_id = za.id AND conv.thread_type = 'user'
+    LEFT JOIN conversations conv ON conv.zalo_account_id = za.id AND conv."threadType" = 'user'
     LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
     WHERE za.org_id = ${orgId}
       AND (${memberUid}::text = ''

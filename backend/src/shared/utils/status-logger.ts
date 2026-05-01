@@ -9,6 +9,12 @@
  */
 import { prisma } from '../database/prisma-client.js';
 import { logger } from './logger.js';
+import type { Server } from 'socket.io';
+
+let io: Server | null = null;
+export function setStatusLoggerIo(socketIo: Server): void {
+  io = socketIo;
+}
 
 export async function logStatusChange(params: {
   contactId: string;
@@ -30,6 +36,15 @@ export async function logStatusChange(params: {
         changedByUserId: userId || null,
       },
     });
+
+    if (io) {
+      io.emit('contact:status-changed', {
+        contactId,
+        orgId,
+        fromStatus: fromStatus || null,
+        toStatus,
+      });
+    }
   } catch (err) {
     logger.warn(`[status-logger] Failed to log status change for ${contactId}:`, err);
   }

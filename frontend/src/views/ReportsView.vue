@@ -245,8 +245,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { api } from '@/api';
+import { io, Socket } from 'socket.io-client';
 import DatePicker from '@/components/DatePicker.vue';
 import { formatDate } from '@/utils/date-format';
 import { Line } from 'vue-chartjs';
@@ -281,6 +282,7 @@ const lostReasons = ref<LostRow[]>([]);
 const interactionQuality = ref<QualityRow[]>([]);
 const weeklyTrend = ref<TrendPoint[]>([]);
 const periodLabel = ref('');
+let socket: Socket | null = null;
 
 async function fetchReport() {
   loading.value = true;
@@ -374,5 +376,15 @@ function stageColor(status: string | null): string {
 }
 
 watch([weekOf, monthOf], () => fetchReport());
-onMounted(() => fetchReport());
+onMounted(() => {
+  fetchReport();
+  socket = io({ transports: ['websocket', 'polling'] });
+  socket.on('contact:status-changed', () => {
+    fetchReport();
+  });
+});
+
+onUnmounted(() => {
+  socket?.disconnect();
+});
 </script>

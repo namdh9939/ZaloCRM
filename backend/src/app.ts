@@ -44,6 +44,7 @@ import { webhookSettingsRoutes } from './modules/api/webhook-settings-routes.js'
 import { startContactIntelligence } from './modules/contacts/contact-intelligence.js';
 import { startServiceScoringCron } from './modules/ai/service-scoring-cron.js';
 import { setLeadStatusIo } from './modules/ai/lead-status-detection.js';
+import { setStatusLoggerIo } from './shared/utils/status-logger.js';
 import { analyticsRoutes } from './modules/analytics/analytics-routes.js';
 import { savedReportRoutes } from './modules/analytics/saved-report-routes.js';
 import { integrationRoutes } from './modules/integrations/integration-routes.js';
@@ -187,6 +188,7 @@ async function bootstrap() {
     startContactIntelligence();
     startServiceScoringCron();
     setLeadStatusIo(io);
+    setStatusLoggerIo(io);
   } catch (err) {
     logger.error('Failed to start server:', err);
     process.exit(1);
