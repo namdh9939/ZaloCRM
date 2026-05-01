@@ -37,7 +37,7 @@ export async function buildTeamConversion(
     SELECT
       za.id AS zalo_account_id,
       za.display_name,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) AS leads_received,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status IS NOT NULL) AS leads_received,
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'new') AS leads_new,
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'consulting') AS leads_consulting,
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'quoting') AS leads_quoting,
@@ -45,7 +45,7 @@ export async function buildTeamConversion(
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'converted') AS leads_converted,
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'lost') AS leads_lost
     FROM zalo_accounts za
-    LEFT JOIN conversations conv ON conv.zalo_account_id = za.id
+    LEFT JOIN conversations conv ON conv.zalo_account_id = za.id AND conv.thread_type = 'user'
     LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
     WHERE za.org_id = ${orgId}
       AND (${memberUid}::text = ''
@@ -53,7 +53,7 @@ export async function buildTeamConversion(
            OR EXISTS (SELECT 1 FROM zalo_account_access zaa
                       WHERE zaa.zalo_account_id = za.id AND zaa.user_id = ${memberUid}))
     GROUP BY za.id, za.display_name
-    HAVING COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) > 0
+    HAVING COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status IS NOT NULL) > 0
        OR ${memberUid}::text = ''
     ORDER BY leads_converted DESC, leads_received DESC
   `;
