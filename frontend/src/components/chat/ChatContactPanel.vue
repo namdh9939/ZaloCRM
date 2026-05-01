@@ -206,7 +206,8 @@ function relativeTime(dateStr: string) {
 
 function onSuggestionApplied(newStatus: string) {
   // Form's status is bound separately by useChatContactPanel — sync it manually.
-  form.value.status = newStatus;
+  // form is from reactive() so no .value accessor.
+  form.status = newStatus;
   if (props.contact) {
     props.contact.status = newStatus;
     props.contact.suggestedStatus = null;

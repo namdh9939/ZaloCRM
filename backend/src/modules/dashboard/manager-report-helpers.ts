@@ -31,16 +31,19 @@ export async function buildTeamConversion(
 ) {
   const rows = await prisma.$queryRaw<Array<{
     zalo_account_id: string; display_name: string | null;
-    leads_received: bigint; leads_advised: bigint; leads_converted: bigint;
+    leads_received: bigint; leads_new: bigint; leads_consulting: bigint;
+    leads_quoting: bigint; leads_nurturing: bigint; leads_converted: bigint; leads_lost: bigint;
   }>>`
     SELECT
       za.id AS zalo_account_id,
       za.display_name,
       COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}) AS leads_received,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
-                          AND c.status IN ('consulting','quoting','nurturing','converted','lost')) AS leads_advised,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end}
-                          AND c.status = 'converted') AS leads_converted
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'new') AS leads_new,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'consulting') AS leads_consulting,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'quoting') AS leads_quoting,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'nurturing') AS leads_nurturing,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'converted') AS leads_converted,
+      COUNT(DISTINCT c.id) FILTER (WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.status = 'lost') AS leads_lost
     FROM zalo_accounts za
     LEFT JOIN conversations conv ON conv.zalo_account_id = za.id
     LEFT JOIN contacts c ON c.id = conv.contact_id AND c.merged_into IS NULL AND c.is_group = false
@@ -57,14 +60,24 @@ export async function buildTeamConversion(
 
   return rows.map((r) => {
     const received = Number(r.leads_received);
-    const advised = Number(r.leads_advised);
+    const isNew = Number(r.leads_new);
+    const consulting = Number(r.leads_consulting);
+    const quoting = Number(r.leads_quoting);
+    const nurturing = Number(r.leads_nurturing);
     const converted = Number(r.leads_converted);
+    const lost = Number(r.leads_lost);
+    const advised = consulting + quoting + nurturing + converted + lost;
+
     return {
       zaloAccountId: r.zalo_account_id,
       displayName: r.display_name ?? '(chưa đặt tên)',
       leadsReceived: received,
-      leadsAdvised: advised,
+      leadsNew: isNew,
+      leadsConsulting: consulting,
+      leadsQuoting: quoting,
+      leadsNurturing: nurturing,
       leadsConverted: converted,
+      leadsLost: lost,
       reachRate: received === 0 ? null : Math.round((advised / received) * 100),
       closeRate: advised === 0 ? null : Math.round((converted / advised) * 100),
     };

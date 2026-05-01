@@ -57,8 +57,11 @@ export async function computeLeadScore(contactId: string): Promise<number> {
   // +20 if future scheduled appointment
   if (futureAppointment) score += 20;
 
-  // +30 if status = 'interested'
-  if (contact?.status === 'interested') score += 30;
+  // Score boost theo phễu — cao nhất ở 'quoting' (chuẩn bị chốt sale).
+  // 'converted' không boost vì đã ngoài phễu (đã thành customer).
+  if (contact?.status === 'consulting') score += 15;
+  else if (contact?.status === 'quoting') score += 30;
+  else if (contact?.status === 'nurturing') score += 20;
 
   // Recency penalty
   const daysSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24);

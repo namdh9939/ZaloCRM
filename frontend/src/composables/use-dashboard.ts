@@ -24,17 +24,20 @@ export interface MessageVolumeItem {
 
 export interface PipelineItem {
   status: string | null;
-  _count: { _all: number } | number;
+  count: number;
 }
 
 export interface SourceItem {
   source: string;
-  _count: { _all: number } | number;
+  count: number;
+  converted: number;
+  conversionRate: number;
 }
 
 export interface AppointmentStatusItem {
   status: string;
-  _count: { _all: number } | number;
+  count: number;
+  _count?: number | { _all: number };
 }
 
 export function useDashboard() {
@@ -60,9 +63,9 @@ export function useDashboard() {
       ]);
       kpi.value = kpiRes.data;
       messageVolume.value = volRes.data.data || volRes.data;
-      pipeline.value = pipRes.data;
-      sources.value = srcRes.data;
-      appointments.value = aptRes.data;
+      pipeline.value = pipRes.data.data ?? pipRes.data;
+      sources.value = srcRes.data.data ?? srcRes.data;
+      appointments.value = aptRes.data.data ?? aptRes.data;
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {

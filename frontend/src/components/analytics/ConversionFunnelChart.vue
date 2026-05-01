@@ -30,17 +30,19 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 const props = defineProps<{ data: ConversionFunnelData | null }>();
 
 const statusLabels: Record<string, string> = {
-  new: 'Mới',
-  contacted: 'Đã liên hệ',
-  interested: 'Quan tâm',
+  new: 'Lead mới',
+  consulting: 'Đang tư vấn',
+  quoting: 'Đang báo giá',
+  nurturing: 'Nuôi dưỡng',
   converted: 'Chuyển đổi',
-  lost: 'Mất',
+  lost: 'Thất bại',
 };
 
 const stageColors: Record<string, string> = {
   new: '#9E9E9E',
-  contacted: '#42A5F5',
-  interested: '#FFA726',
+  consulting: '#42A5F5',
+  quoting: '#FFA726',
+  nurturing: '#AB47BC',
   converted: '#66BB6A',
   lost: '#EF5350',
 };

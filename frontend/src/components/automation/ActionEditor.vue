@@ -92,17 +92,18 @@ const actionOptions = [
 ];
 
 const statusItems = [
-  { title: 'Mới', value: 'new' },
-  { title: 'Đã liên hệ', value: 'contacted' },
-  { title: 'Quan tâm', value: 'interested' },
+  { title: 'Lead mới', value: 'new' },
+  { title: 'Đang tư vấn', value: 'consulting' },
+  { title: 'Đang báo giá', value: 'quoting' },
+  { title: 'Nuôi dưỡng', value: 'nurturing' },
   { title: 'Chuyển đổi', value: 'converted' },
-  { title: 'Mất', value: 'lost' },
+  { title: 'Thất bại', value: 'lost' },
 ];
 
 const templateItems = computed(() => props.templates.map((template) => ({ title: template.name, value: template.id })));
 
 function addAction() {
-  emit('update:modelValue', [...props.modelValue, { type: 'update_status', status: 'contacted' }]);
+  emit('update:modelValue', [...props.modelValue, { type: 'update_status', status: 'consulting' }]);
 }
 
 function updateAction(index: number, key: keyof AutomationAction, value: unknown) {

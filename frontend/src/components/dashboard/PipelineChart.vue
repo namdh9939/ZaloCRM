@@ -15,33 +15,46 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// Accept any item shape: backend sends { status, count } or older { _count } —
+// component is tolerant to either to avoid breaking when API changes.
+type RawItem = {
+  status: string | null;
+  count?: number;
+  _count?: { _all: number } | number;
+};
+
 const props = defineProps<{
-  data: { status: string | null; _count: { _all: number } | number }[];
+  data: RawItem[];
 }>();
 
 const statusColors: Record<string, string> = {
   new: '#9E9E9E',
-  contacted: '#42A5F5',
-  interested: '#FF9800',
+  consulting: '#42A5F5',
+  quoting: '#FFA726',
+  nurturing: '#AB47BC',
   converted: '#66BB6A',
   lost: '#EF5350',
 };
 
 const statusLabels: Record<string, string> = {
-  new: 'Mới',
-  contacted: 'Đã liên hệ',
-  interested: 'Quan tâm',
+  new: 'Lead mới',
+  consulting: 'Đang tư vấn',
+  quoting: 'Đang báo giá',
+  nurturing: 'Nuôi dưỡng',
   converted: 'Chuyển đổi',
-  lost: 'Mất',
+  lost: 'Thất bại',
 };
 
-function getCount(item: { _count: { _all: number } | number }): number {
-  return typeof item._count === 'number' ? item._count : item._count._all;
+function getCount(item: RawItem): number {
+  if (typeof item.count === 'number') return item.count;
+  if (typeof item._count === 'number') return item._count;
+  if (item._count && typeof item._count === 'object') return item._count._all ?? 0;
+  return 0;
 }
 
 const chartData = computed(() => {
-  if (!props.data?.length) return null;
-  const filtered = props.data.filter(d => d.status);
+  if (!Array.isArray(props.data) || !props.data.length) return null;
+  const filtered = props.data.filter(d => d.status && getCount(d) > 0);
   if (!filtered.length) return null;
   return {
     labels: filtered.map(d => statusLabels[d.status || ''] || d.status),

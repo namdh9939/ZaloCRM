@@ -64,19 +64,25 @@
           <thead>
             <tr>
               <th>Tài khoản Zalo</th>
-              <th class="text-center">Lead tiếp nhận</th>
-              <th class="text-center">Đã tư vấn</th>
-              <th class="text-center">Chốt đơn</th>
-              <th class="text-center">Tỉ lệ tiếp cận</th>
-              <th class="text-center">Tỉ lệ chuyển đổi</th>
+              <th class="text-center" style="min-width: 90px;">Lead mới</th>
+              <th class="text-center" style="min-width: 100px;">Đang tư vấn</th>
+              <th class="text-center" style="min-width: 110px;">Đang báo giá</th>
+              <th class="text-center" style="min-width: 100px;">Nuôi dưỡng</th>
+              <th class="text-center" style="min-width: 90px;">Chốt đơn</th>
+              <th class="text-center" style="min-width: 80px;">Thất bại</th>
+              <th class="text-center" style="min-width: 120px;">Tỉ lệ tiếp cận</th>
+              <th class="text-center" style="min-width: 120px;">Tỉ lệ chốt</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="row in teamConversion" :key="row.zaloAccountId">
               <td>{{ row.displayName }}</td>
-              <td class="text-center">{{ row.leadsReceived }}</td>
-              <td class="text-center">{{ row.leadsAdvised }}</td>
-              <td class="text-center font-weight-bold">{{ row.leadsConverted }}</td>
+              <td class="text-center text-grey font-weight-medium">{{ row.leadsNew }}</td>
+              <td class="text-center" style="color: #2196F3">{{ row.leadsConsulting }}</td>
+              <td class="text-center" style="color: #FF9800">{{ row.leadsQuoting }}</td>
+              <td class="text-center" style="color: #9C27B0">{{ row.leadsNurturing }}</td>
+              <td class="text-center text-success font-weight-bold">{{ row.leadsConverted }}</td>
+              <td class="text-center text-error">{{ row.leadsLost }}</td>
               <td class="text-center">
                 <span v-if="row.reachRate === null" class="text-grey">—</span>
                 <span v-else :style="{ color: rateColor(row.reachRate, 50, 80) }" class="font-weight-medium">
@@ -92,7 +98,7 @@
               </td>
             </tr>
             <tr v-if="!teamConversion.length">
-              <td colspan="6" class="text-center text-grey py-4">Chưa ghi nhận lead mới trong kỳ báo cáo</td>
+              <td colspan="9" class="text-center text-grey py-4">Chưa ghi nhận lead mới trong kỳ báo cáo</td>
             </tr>
           </tbody>
         </v-table>
@@ -235,7 +241,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 interface TeamRow {
   zaloAccountId: string; displayName: string;
-  leadsReceived: number; leadsAdvised: number; leadsConverted: number;
+  leadsReceived: number; leadsNew: number; leadsConsulting: number;
+  leadsQuoting: number; leadsNurturing: number; leadsConverted: number; leadsLost: number;
   reachRate: number | null; closeRate: number | null;
 }
 interface StageRow { status: string | null; label: string; count: number; avgDaysInStage: number | null; maxDaysInStage: number | null; }
@@ -339,8 +346,9 @@ function formatMinutes(mins: number): string {
 function stageColor(status: string | null): string {
   switch (status) {
     case 'new': return 'grey';
-    case 'contacted': return 'info';
-    case 'interested': return 'warning';
+    case 'consulting': return 'info';
+    case 'quoting': return 'warning';
+    case 'nurturing': return 'purple';
     case 'converted': return 'success';
     case 'lost': return 'error';
     default: return 'default';

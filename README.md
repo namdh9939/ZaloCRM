@@ -1,140 +1,143 @@
-# ZaloCRM v2.1 — Quản lý nhiều tài khoản Zalo cá nhân
+# ZaloCRM
 
-Hệ thống quản lý tập trung nhiều tài khoản Zalo cá nhân trên 1 giao diện web. Chat real-time, AI assistant, workflow tự động, tích hợp đa nền tảng, analytics nâng cao, PWA mobile.
+> Hệ thống CRM quản lý nhiều tài khoản Zalo cá nhân, dùng nội bộ cho công ty **Nhà Của Mình (NCM)** — dịch vụ **Trợ Lý Xây Nhà (TLXN)**.
 
-**GitHub:** [https://github.com/locphamnguyen/ZaloCRM](https://github.com/locphamnguyen/ZaloCRM)
+**🌐 Production**: https://zalo.nhacuaminh.com
 
-## Tính năng
+---
 
-### Cốt lõi (v1.0)
-- **Quản lý nhiều Zalo** — Đăng nhập QR, tự kết nối lại, lưu phiên đăng nhập
-- **Chat real-time** — Gửi/nhận tin nhắn, ảnh, file, sticker, nhóm chat
-- **Quản lý khách hàng** — Pipeline (Mới → Đã liên hệ → Quan tâm → Chuyển đổi → Mất)
-- **Lịch hẹn** — Tạo, theo dõi, nhắc nhở tự động hàng ngày
-- **Dashboard** — Biểu đồ tin nhắn, KPI, nguồn khách hàng, trạng thái pipeline
-- **Báo cáo** — Xuất Excel, lọc theo thời gian
-- **Phân quyền** — Owner / Admin / Member, quản lý đội nhóm, phân quyền Zalo
-- **API công khai** — REST API với xác thực API key cho tích hợp bên ngoài
-- **Webhook** — Nhận thông báo khi có tin nhắn mới, khách hàng mới, Zalo kết nối/ngắt
-- **Chống block Zalo** — Giới hạn 200 tin/ngày, phát hiện gửi quá nhanh
-- **Thông báo** — Tin chưa trả lời >30 phút, lịch hẹn sắp tới, Zalo mất kết nối
-- **Tìm kiếm toàn hệ thống** — Tìm khách hàng, tin nhắn, lịch hẹn
-- **Giao diện** — Theme tối/sáng, thiết kế Liquid Silicon
+## 🤖 Cho AI agent (Claude Code, Cursor, ChatGPT…)
 
-### Mới trong v2.1
+**ĐỌC TRƯỚC TIÊN: [AGENTS.md](AGENTS.md)** — quy tắc cứng + bối cảnh + anti-patterns.
 
-- **📂 Tab "Khác"** — Ẩn hội thoại không quan trọng sang tab riêng, chuột phải để chuyển tab
-- **✏️ Tên KH 2 lớp** — CRM Name (tên thật) + Zalo Name, hiển thị CRM Name ưu tiên, dùng trong template
-- **🔍 Bộ lọc hội thoại** — Lọc theo chưa đọc, chưa trả lời, thời gian, tags
-- **📝 Template nhanh** — Gõ `/` trong ô chat để chèn mẫu tin nhắn với biến động (tên, ngày, trạng thái)
-- **💬 Tin nhắn đặc biệt** — Hiển thị sticker, hình ảnh, video, file, chuyển khoản, cuộc gọi, QR, nhắc hẹn
-- **🔄 Đồng bộ tin nhắn** — Lấy 50 tin cũ khi kết nối Zalo, selfListen dedup, tự tạo contact mới
-- **🐛 Fix: Tên "Unknown"** — Hiển thị đúng tên người gửi từ senderName Zalo
-- **🐛 Fix: PWA setup** — Sửa lỗi vite-plugin-pwa không build được
+Tóm tắt rule quan trọng:
+- KHÔNG đụng cấu trúc `backend/` `frontend/` trừ khi user yêu cầu rõ
+- KHÔNG đổi nameserver `nhacuaminh.com`
+- AI feature phải **suggest-only**, không auto-apply vào trường nghiệp vụ
+- KHÔNG auto-detect status `converted` (manual only)
+- Cảnh báo trước khi làm action không reverse được
 
-### Mới trong v2.0
+---
 
-- **🤖 AI Assistant** — Gợi ý trả lời, tóm tắt hội thoại, phân tích cảm xúc khách hàng
-- **⚡ Workflow Automation** — Tự động gửi tin nhắn, phân loại khách hàng, trigger theo sự kiện
-- **🔗 Integration Hub** — Tích hợp Google Sheets, Telegram, Facebook, Zapier
-- **📱 Mobile PWA** — Giao diện responsive, hoạt động offline, cài đặt trên điện thoại
-- **🧠 Contact Intelligence** — Gộp trùng khách hàng, lead scoring, auto-tag
-- **📊 Advanced Analytics** — Phân tích funnel, hiệu suất team, thời gian phản hồi, report builder
-- **🔧 Multi-Provider AI** — Hỗ trợ Anthropic, OpenAI, Qwen, Kimi với cấu hình linh hoạt
-- **🌐 Proxy per-account** — Cấu hình proxy HTTP riêng cho từng tài khoản Zalo, tránh block IP
-- **🐛 Fix: Tin nhắn trùng lặp** — Loại bỏ tin nhắn hiển thị trùng khi gửi
+## 🏗️ Tech stack
 
-## Yêu cầu hệ thống
+| Layer | Tech |
+|---|---|
+| Runtime | Node.js 20 |
+| Backend | Fastify 5 + Prisma 7 |
+| Database | PostgreSQL 16 |
+| Frontend | Vue 3 + Vuetify 3 + Vite |
+| Realtime | Socket.IO |
+| AI | Anthropic Claude / Gemini / OpenAI / Qwen / Kimi |
+| Zalo SDK | zca-js 2.x |
+| Container | Docker Compose |
+| Reverse proxy | Caddy 2 (auto SSL Let's Encrypt) |
+| Mobile | PWA (Service Worker + Manifest) |
 
-| Thành phần | Tối thiểu | Khuyến nghị |
-|-----------|----------|------------|
-| CPU | 1 vCPU | 2-4 vCPU |
-| RAM | 1 GB | 4 GB |
-| Ổ cứng | 10 GB | 20 GB SSD |
-| Hệ điều hành | Ubuntu 20.04+ | Ubuntu 22.04 LTS |
-| Phần mềm | Docker + Docker Compose | Docker 24+ |
+---
 
-## Cài đặt nhanh
+## 📂 Cấu trúc thư mục
 
-> Hướng dẫn chi tiết: [HUONG-DAN-CAI-DAT.md](HUONG-DAN-CAI-DAT.md)
+```
+ZaloCRM/
+├── AGENTS.md                ← rules cho AI agent (đọc trước)
+├── README.md                ← bạn đang đọc
+├── docs/                    ← tài liệu cho human
+│   ├── install-guide.md     ← cài đặt từ đầu lên VPS
+│   ├── user-guide.md        ← hướng dẫn nhân viên dùng app
+│   └── business-context-ncm.md  ← business model NCM/TLXN
+├── backend/                 ← Fastify API + Prisma
+│   ├── src/modules/         ← chia theo domain (ai/, chat/, contacts/...)
+│   ├── prisma/              ← schema + migrations
+│   └── ...
+├── frontend/                ← Vue 3 SPA
+│   ├── src/components/
+│   ├── src/composables/
+│   ├── src/views/
+│   └── ...
+├── docker/                  ← Dockerfile
+├── docker-compose.yml       ← prod stack (app + db + backup)
+├── docker-compose.dev.yml   ← dev stack
+├── plans/                   ← sprint plans (lịch sử)
+├── artifacts/               ← SOP nội bộ
+└── bin/                     ← dev-setup, dev-teardown scripts
+```
+
+---
+
+## 🚀 Quick start (local dev)
 
 ```bash
-git clone https://github.com/locphamnguyen/ZaloCRM.git
+git clone https://github.com/namdh9939/ZaloCRM.git
 cd ZaloCRM
 cp .env.example .env
-# Sửa file .env — đặt mật khẩu và secret keys
-docker compose up -d --build
+# Sửa .env — đặt JWT_SECRET, ENCRYPTION_KEY, DB_PASSWORD, AI tokens
+docker compose -f docker-compose.dev.yml up
 ```
 
-Truy cập **http://IP-server:3080** → Tạo tài khoản admin lần đầu.
+Truy cập http://localhost:3080 → tạo tài khoản admin đầu tiên.
 
-## Công nghệ sử dụng
+> Cài đặt production trên VPS: xem [docs/install-guide.md](docs/install-guide.md).
 
-| Thành phần | Công nghệ |
-|-----------|----------|
-| Backend | Node.js 20 / Fastify 5 / Prisma 7 |
-| Frontend | Vue 3 / Vuetify 3 / Chart.js / Pinia |
-| AI | Anthropic Claude / OpenAI / Qwen / Kimi |
-| Cơ sở dữ liệu | PostgreSQL 16 |
-| Real-time | Socket.IO |
-| Zalo | zca-js 2.x |
-| Mobile | PWA (Service Worker + Web App Manifest) |
-| Triển khai | Docker Compose |
+---
 
-## API & Webhook
+## ✨ Tính năng chính
 
-> Hướng dẫn chi tiết: [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md)
+### CRM core
+- Quản lý nhiều tài khoản Zalo (QR login, auto reconnect, session persist)
+- Chat real-time với khách (tin nhắn, ảnh, file, sticker, group)
+- Pipeline 6 bước: `new → consulting → quoting → nurturing → converted` (+ `lost`)
+- Lịch hẹn + nhắc nhở tự động
+- Phân quyền 3 cấp: owner / admin / member
 
-### Xác thực API
-```
-Header: X-API-Key: your-api-key
-```
+### AI Assistant
+- **Lead-status detection** ⭐ — AI đề xuất chuyển trạng thái khách dựa trên hội thoại (suggest-only, debounce 30s)
+- **Service quality scoring** — chấm điểm thái độ phục vụ của nhân viên
+- **Reply suggestions** — gợi ý nội dung trả lời
+- **Conversation summary + sentiment**
 
-### Endpoint chính
+### Vận hành
+- Webhook + Public API (key auth)
+- Backup tự động hàng ngày (Postgres)
+- Push notifications (Web Push, VAPID)
+- Dashboard + báo cáo (theo tuần/tháng)
 
-| Phương thức | Đường dẫn | Mô tả |
-|------------|----------|-------|
-| GET | `/api/public/contacts` | Danh sách khách hàng |
-| POST | `/api/public/contacts` | Tạo khách hàng mới |
-| POST | `/api/public/messages/send` | Gửi tin nhắn |
-| GET | `/api/public/appointments` | Danh sách lịch hẹn |
+---
 
-### Sự kiện Webhook
+## 🔧 Deploy lên production
 
-| Sự kiện | Mô tả |
-|---------|-------|
-| `message.received` | Tin nhắn mới đến |
-| `message.sent` | Tin nhắn gửi đi |
-| `contact.created` | Khách hàng mới |
-| `zalo.connected` | Zalo kết nối |
-| `zalo.disconnected` | Zalo mất kết nối |
+Hiện đang chạy trên VPS `cyber-box-986` (1 vCPU / 2GB RAM) với stack:
+- Docker Compose + Caddy reverse proxy + Postgres 16
+- DNS A record `zalo.nhacuaminh.com` → IP VPS
 
-## Lịch sử phiên bản
+Quy trình update code → xem [AGENTS.md § 6](AGENTS.md#6-quy-trình-deploy).
 
-### v2.1 (16/04/2026)
-- Tab "Khác": ẩn hội thoại không quan trọng, chuyển tab bằng chuột phải
-- Tên KH 2 lớp: CRM Name + Zalo Name, ưu tiên CRM Name
-- Bộ lọc hội thoại: chưa đọc, chưa trả lời, thời gian, tags
-- Template nhanh: gõ `/` để chèn mẫu tin nhắn với biến động
-- Tin nhắn đặc biệt: hiển thị sticker, ảnh, video, file, chuyển khoản, cuộc gọi
-- Đồng bộ tin nhắn: lấy 50 tin cũ, selfListen dedup, tự tạo contact
-- Fix: tên "Unknown", PWA setup, tin nhắn trùng lặp khi gửi
+Helper scripts SSH/upload đặt ở `D:/Zalo/ops/` (paramiko-based vì VPS disable SFTP).
 
-### v2.0 (31/03/2026)
-- AI Assistant: gợi ý trả lời, tóm tắt, phân tích cảm xúc
-- Workflow Automation: tự động gửi tin, phân loại khách
-- Integration Hub: Google Sheets, Telegram, Facebook, Zapier
-- Mobile PWA: offline, responsive, installable
-- Contact Intelligence: gộp trùng, lead scoring, auto-tag
-- Advanced Analytics: funnel, team perf, report builder
-- Multi-Provider AI: Anthropic, OpenAI, Qwen, Kimi
-- Proxy per-account: cấu hình proxy riêng cho từng Zalo
-- Fix: loại bỏ tin nhắn hiển thị trùng
+---
 
-### v1.0 (29/03/2026)
-- MVP: Quản lý nhiều Zalo, chat, CRM, lịch hẹn, dashboard, báo cáo, API, webhook
-- Dự án gốc của tác giả Vuongnguyenbinh các bạn tham khảo tại đây: https://github.com/vuongnguyenbinh/ZaloCRM
+## 📚 Tài liệu
 
-## Giấy phép
+| Mục đích | File |
+|---|---|
+| **Rules cho AI agent** | [AGENTS.md](AGENTS.md) |
+| **Cài đặt từ đầu** | [docs/install-guide.md](docs/install-guide.md) |
+| **Hướng dẫn nhân viên** | [docs/user-guide.md](docs/user-guide.md) |
+| **Business context NCM** | [docs/business-context-ncm.md](docs/business-context-ncm.md) |
 
-MIT — Miễn phí sử dụng và chỉnh sửa.
+---
+
+## 📜 Phiên bản
+
+| Version | Ngày | Highlights |
+|---|---|---|
+| **v2.2** | 2026-05-01 | AI lead-status detection (suggest-only), service quality scoring, push notifications |
+| v2.1 | 2026-04-16 | Tab "Khác", tên KH 2 lớp, bộ lọc, template nhanh |
+| v2.0 | 2026-03-31 | AI Assistant, Workflow Automation, PWA, Multi-Provider AI |
+| v1.0 | 2026-03-29 | MVP — Zalo, chat, CRM, lịch hẹn, dashboard, API, webhook |
+
+---
+
+## 📄 Giấy phép
+
+Internal use — Nhà Của Mình (NCM). Code được fork và customize từ [vuongnguyenbinh/ZaloCRM](https://github.com/vuongnguyenbinh/ZaloCRM).

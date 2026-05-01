@@ -15,8 +15,10 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// Tolerant to both new shape ({status, count}) and legacy ({_count}).
+type RawAptItem = { status: string; count?: number; _count?: { _all: number } | number };
 const props = defineProps<{
-  data: { status: string; _count: { _all: number } | number }[];
+  data: RawAptItem[];
 }>();
 
 const statusColors: Record<string, string> = {
@@ -33,17 +35,22 @@ const statusLabels: Record<string, string> = {
   'no_show': 'Vắng mặt',
 };
 
-function getCount(item: { _count: { _all: number } | number }): number {
-  return typeof item._count === 'number' ? item._count : item._count._all;
+function getCount(item: RawAptItem): number {
+  if (typeof item.count === 'number') return item.count;
+  if (typeof item._count === 'number') return item._count;
+  if (item._count && typeof item._count === 'object') return item._count._all ?? 0;
+  return 0;
 }
 
 const chartData = computed(() => {
-  if (!props.data?.length) return null;
+  if (!Array.isArray(props.data) || !props.data.length) return null;
+  const filtered = props.data.filter(d => getCount(d) > 0);
+  if (!filtered.length) return null;
   return {
-    labels: props.data.map(d => statusLabels[d.status] || d.status),
+    labels: filtered.map(d => statusLabels[d.status] || d.status),
     datasets: [{
-      data: props.data.map(d => getCount(d)),
-      backgroundColor: props.data.map(d => statusColors[d.status] || '#BDBDBD'),
+      data: filtered.map(d => getCount(d)),
+      backgroundColor: filtered.map(d => statusColors[d.status] || '#BDBDBD'),
     }],
   };
 });
