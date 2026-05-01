@@ -60,7 +60,8 @@
         phản ánh chất lượng tư vấn và mức phù hợp của sản phẩm.
       </v-card-subtitle>
       <v-card-text>
-        <v-table density="comfortable">
+        <div class="overflow-x-auto">
+          <v-table density="comfortable">
           <thead>
             <tr>
               <th>Tài khoản Zalo</th>
@@ -120,7 +121,8 @@
             </tr>
           </tbody>
         </v-table>
-      </v-card-text>
+      </div>
+    </v-card-text>
     </v-card>
 
     <!-- Section 2 — Pipeline bottleneck -->
@@ -134,7 +136,8 @@
         là điểm nghẽn cần ưu tiên rà soát quy trình và can thiệp kịp thời.
       </v-card-subtitle>
       <v-card-text>
-        <v-table density="comfortable">
+        <div class="overflow-x-auto">
+          <v-table density="comfortable">
           <thead>
             <tr>
               <th>Giai đoạn</th>
@@ -159,7 +162,8 @@
             </tr>
           </tbody>
         </v-table>
-      </v-card-text>
+      </div>
+    </v-card-text>
     </v-card>
 
     <!-- Section 3 — Lost reasons -->
@@ -203,7 +207,8 @@
         phản ánh trực tiếp chất lượng dịch vụ của từng tài khoản Zalo.
       </v-card-subtitle>
       <v-card-text>
-        <v-table density="comfortable">
+        <div class="overflow-x-auto">
+          <v-table density="comfortable">
           <thead>
             <tr>
               <th>Tài khoản Zalo</th>
@@ -239,7 +244,8 @@
             </tr>
           </tbody>
         </v-table>
-      </v-card-text>
+      </div>
+    </v-card-text>
     </v-card>
   </div>
 </template>
