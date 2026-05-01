@@ -19,7 +19,7 @@ const tabs = [
   { title: 'Khách hàng', icon: 'mdi-account-group', path: '/contacts' },
   { title: 'Dashboard', icon: 'mdi-view-dashboard', path: '/' },
   { title: 'Báo cáo', icon: 'mdi-chart-box', path: '/reports' },
-  { title: 'Khám phá', icon: 'mdi-widgets', path: '/automation' },
+  { title: 'Khám phá', icon: 'mdi-widgets', path: '/discovery' },
 ];
 
 const activeTab = computed(() => {
